@@ -175,6 +175,40 @@ if (interaction.commandName === "battle-start") {
   }
 }
 
+
+// =======================================================
+// /meme
+// =======================================================
+if (interaction.commandName === "meme") {
+  try {
+    await interaction.deferReply();
+
+    // Get a random meme from Reddit’s r/memes or r/dankmemes
+    const response = await fetch("https://meme-api.com/gimme/dankmemes");
+    const data = await response.json();
+
+    // If Reddit API fails
+    if (!data || !data.url) {
+      await interaction.editReply("⚠️ Couldn't fetch a meme right now, try again later!");
+      return;
+    }
+
+    // Send the meme
+    await interaction.editReply({
+      content: `🤣 **${data.title}**\nFrom: [r/${data.subreddit}](https://reddit.com/r/${data.subreddit})`,
+      embeds: [
+        {
+          image: { url: data.url },
+          color: 0x00ff99,
+        },
+      ],
+    });
+  } catch (err) {
+    console.error("Error with /meme:", err);
+    await interaction.reply("⚠️ Something went wrong getting the meme!");
+  }
+}
+
 });
 
 // ==================== LOGIN ====================
