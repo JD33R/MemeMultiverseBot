@@ -1,49 +1,101 @@
-// ======================================
-// Meme Multiverse Bot — Full Working Build
-// ======================================
+// ============================================
+// Meme Multiverse Bot – Full Version with XP
+// ============================================
 
+require("dotenv").config();
+const fs = require("fs");
 const {
   Client,
   GatewayIntentBits,
+  Partials,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  PermissionsBitField,
+  SlashCommandBuilder,
+  Collection,
 } = require("discord.js");
-const Levels = require("discord-xp");
-const fs = require("fs");
-require("dotenv").config();
 
-const template = JSON.parse(fs.readFileSync("template.json", "utf8"));
-// Levels.setURL("sqlite://meme_multiverse_levels.sqlite");
-
+// Create Discord client
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
   ],
+  partials: [Partials.Channel, Partials.GuildMember],
 });
 
-// ======================================
-// When bot starts
-// ======================================
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// ============================================
+// Local XP System Setup
+// ============================================
+const xpFile = "./levels.json";
+let xpData = fs.existsSync(xpFile) ? JSON.parse(fs.readFileSync(xpFile)) : {};
+
+function saveXP() {
+  fs.writeFileSync(xpFile, JSON.stringify(xpData, null, 2));
+}
+
+function addXP(userId, guildId, xpToAdd) {
+  if (!xpData[guildId]) xpData[guildId] = {};
+  if (!xpData[guildId][userId])
+    xpData[guildId][userId] = { xp: 0, level: 1 };
+
+  const user = xpData[guildId][userId];
+  user.xp += xpToAdd;
+
+  const nextLevelXP = user.level * 100;
+  if (user.xp >= nextLevelXP) {
+    user.level++;
+    user.xp = 0;
+    return true;
+  }
+
+  return false;
+}
+
+// ============================================
+// Bot Ready
+// ============================================
 client.once("ready", () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
-  console.log("🚀 Meme Multiverse Bot is online and ready!");
+  console.log("🚀 Meme Multiverse Bot is online with XP system!");
 });
 
-// ======================================
-// Interaction Handler
-// ======================================
+// ============================================
+// XP Event on Message
+// ============================================
+client.on("messageCreate", async (message) => {
+  if (message.author.bot || !message.guild) return;
+
+  const leveledUp = addXP(message.author.id, message.guild.id, 10);
+
+  if (leveledUp) {
+    message.channel.send(`🎉 ${message.author} leveled up! You're now level ${xpData[message.guild.id][message.author.id].level}!`);
+  }
+
+  saveXP();
+});
+
+// ============================================
+// Slash Commands
+// ============================================
 client.on("interactionCreate", async (interaction) => {
-  // ✅ Handle Verify Button
+  if (!interaction.isChatInputCommand() && !interaction.isButton()) return;
+  const guild = interaction.guild;
+
+  // ======================
+  // VERIFY BUTTON
+  // ======================
   if (interaction.isButton() && interaction.customId === "verify_button") {
     try {
       await interaction.deferReply({ ephemeral: true });
-      const guild = interaction.guild;
       const member = await guild.members.fetch(interaction.user.id);
 
-      let verifiedRole = guild.roles.cache.find(r => r.name === "🌈 Normie");
+      let verifiedRole = guild.roles.cache.find((r) => r.name === "🌈 Normie");
       if (!verifiedRole) {
         verifiedRole = await guild.roles.create({
           name: "🌈 Normie",
@@ -55,53 +107,75 @@ client.on("interactionCreate", async (interaction) => {
       await interaction.editReply("✅ You’re verified! Welcome to The Meme Multiverse!");
     } catch (err) {
       console.error("❌ Verify error:", err);
-      if (interaction.deferred || interaction.replied) {
-        await interaction.editReply("⚠️ Something went wrong verifying you.");
-      } else {
-        await interaction.reply({ content: "⚠️ Something went wrong verifying you.", ephemeral: true });
-      }
+      await interaction.reply({ content: "⚠️ Verification failed.", ephemeral: true });
     }
     return;
   }
 
-  if (!interaction.isChatInputCommand()) return;
-  const guild = interaction.guild;
-
-  // ======================================
-  // /setup-meme Command
-  // ======================================
-  if (interaction.commandName === "setup-meme") {
+  // ======================
+  // RESET SERVER
+  // ======================
+  if (interaction.commandName === "reset-server") {
     await interaction.deferReply({ ephemeral: true });
-    await interaction.followUp("🌀 Setting up The Meme Multiverse...");
+    await interaction.editReply("⚠️ Resetting the server...");
 
-    // Create roles
-    for (const role of template.roles) {
-      const roleData = {
-        name: role.name,
-        permissions: role.permissions ?? [],
-      };
-      if (role.color) roleData.color = role.color;
-      await guild.roles.create(roleData);
-    }
-
-    // Create categories & channels
-    for (const category of template.categories) {
-      const cat = await guild.channels.create({
-        name: category.name,
-        type: 4,
-      });
-
-      for (const channel of category.channels) {
-        await guild.channels.create({
-          name: channel.name,
-          type: channel.type === "voice" ? 2 : 0,
-          parent: cat.id,
-        });
+    for (const [id, channel] of guild.channels.cache) {
+      try {
+        await channel.delete();
+      } catch (err) {
+        console.warn(`Couldn't delete channel ${channel.name}:`, err.message);
       }
     }
 
-    // ✅ Create or reuse verify channel
-    let verifyChannel = guild.channels.cache.find(c => c.name === "✅│verify-here");
+    for (const [id, role] of guild.roles.cache) {
+      if (role.name !== "@everyone" && !role.managed) {
+        try {
+          await role.delete();
+        } catch (err) {
+          console.warn(`Couldn't delete role ${role.name}:`, err.message);
+        }
+      }
+    }
+
+    const botChannel = await guild.channels.create({
+      name: "📜│bot-commands",
+      type: 0,
+    });
+
+    await botChannel.send("✅ Server reset complete! Use `/setup-meme` to rebuild.");
+    await interaction.followUp("🧹 Server wiped clean.");
+    return;
+  }
+
+  // ======================
+  // SETUP SERVER
+  // ======================
+  if (interaction.commandName === "setup-meme") {
+    await interaction.deferReply({ ephemeral: true });
+    await interaction.editReply("🌀 Setting up The Meme Multiverse...");
+
+    const roles = [
+      { name: "👑 Meme Lord", color: 16766720, permissions: [PermissionsBitField.Flags.Administrator] },
+      { name: "🧱 Moderator", color: 3066993 },
+      { name: "🤖 The Overseer (Bot)", color: 10070709 },
+      { name: "🪖 Shitposter", color: 13632027 },
+      { name: "🌈 Normie", color: 15158332 },
+      { name: "🧑‍🎨 Template Alchemist", color: 3447003 },
+      { name: "🕵️ Meme Historian", color: 9807270 },
+    ];
+
+    for (const r of roles) {
+      if (!guild.roles.cache.find((role) => role.name === r.name)) {
+        await guild.roles.create({
+          name: r.name,
+          color: r.color,
+          permissions: r.permissions || [],
+        });
+        await wait(300);
+      }
+    }
+
+    let verifyChannel = guild.channels.cache.find((c) => c.name === "✅│verify-here");
     if (!verifyChannel) {
       verifyChannel = await guild.channels.create({
         name: "✅│verify-here",
@@ -111,122 +185,72 @@ client.on("interactionCreate", async (interaction) => {
 
     const verifyButton = new ButtonBuilder()
       .setCustomId("verify_button")
-      .setLabel("✅ Verify")
+      .setLabel("✅ Verify Me")
       .setStyle(ButtonStyle.Success);
 
     const row = new ActionRowBuilder().addComponents(verifyButton);
 
     await verifyChannel.send({
-      content:
-        "👋 Welcome to **The Meme Multiverse!** Click below to verify and unlock the rest of the server.",
+      content: "👋 Welcome! Click below to verify and unlock the rest of the server!",
       components: [row],
     });
 
-    await interaction.followUp("🎉 The Meme Multiverse has been created!");
-  }
+    const everyoneRole = guild.roles.everyone;
+    const verifiedRole = guild.roles.cache.find((r) => r.name === "🌈 Normie");
 
-  // ======================================
-  // /reset-server Command
-  // ======================================
-  if (interaction.commandName === "reset-server") {
-    await interaction.deferReply({ ephemeral: true });
-    await interaction.followUp("⚠️ Resetting the server...");
-
-    const tempChannel = await guild.channels.create({
-      name: "📜│bot-commands-temp",
-      type: 0,
-    });
-
-    // Delete all other channels
     for (const [id, channel] of guild.channels.cache) {
-      if (channel.id !== tempChannel.id) {
-        try {
-          await channel.delete();
-        } catch (err) {
-          console.error(`Couldn't delete ${channel.name}: ${err.message}`);
-        }
+      if (channel.id === verifyChannel.id) {
+        await channel.permissionOverwrites.create(everyoneRole, { ViewChannel: true, SendMessages: true });
+      } else {
+        await channel.permissionOverwrites.create(everyoneRole, { ViewChannel: false, SendMessages: false });
+        await channel.permissionOverwrites.create(verifiedRole, { ViewChannel: true, SendMessages: true });
       }
     }
 
-    // Delete all non-managed roles
-    for (const [id, role] of guild.roles.cache) {
-      if (role.name !== "@everyone" && !role.managed) {
-        try {
-          await role.delete();
-        } catch (err) {
-          console.error(`Couldn't delete role ${role.name}: ${err.message}`);
-        }
-      }
-    }
-
-    await tempChannel.edit({ name: "📜│bot-commands" });
-    await tempChannel.send("✅ Server reset complete! Type `/setup-meme` to rebuild the server.");
-
-    await interaction.followUp("✅ Server successfully reset!");
+    await interaction.followUp("🎉 Setup complete! Only verified users can now access the server.");
+    return;
   }
 
-  // ======================================
-  // /meme Command
-  // ======================================
+  // ======================
+  // MEME COMMAND
+  // ======================
   if (interaction.commandName === "meme") {
+    await interaction.deferReply();
     try {
-      await interaction.deferReply();
-      const response = await fetch("https://meme-api.com/gimme/dankmemes");
-      const data = await response.json();
-
-      if (!data || !data.url) {
-        await interaction.editReply("⚠️ Couldn't fetch a meme right now, try again later!");
-        return;
-      }
-
-      await interaction.editReply({
-        content: `🤣 **${data.title}**\nFrom: [r/${data.subreddit}](https://reddit.com/r/${data.subreddit})`,
-        embeds: [{ image: { url: data.url }, color: 0x00ff99 }],
-      });
+      const res = await fetch("https://meme-api.com/gimme");
+      const data = await res.json();
+      await interaction.editReply({ content: `${data.title}\n${data.url}` });
     } catch (err) {
-      console.error("Error with /meme:", err);
-      await interaction.reply("⚠️ Something went wrong getting the meme!");
+      await interaction.editReply("⚠️ Couldn't fetch a meme right now!");
     }
+    return;
   }
 
-  // ======================================
-  // /rank Command
-  // ======================================
+  // ======================
+  // RANK COMMAND
+  // ======================
   if (interaction.commandName === "rank") {
-    const user = await Levels.fetch(interaction.user.id, interaction.guild.id);
-    if (!user || user.level === 0) {
-      await interaction.reply("💤 You haven’t earned any XP yet. Post some memes!");
-    } else {
-      await interaction.reply(`🏆 ${interaction.user.username}, you are Level **${user.level}** with **${user.xp} XP!**`);
+    const user = xpData[guild.id]?.[interaction.user.id];
+    if (!user) {
+      await interaction.reply({ content: "😅 You haven’t earned any XP yet!", ephemeral: true });
+      return;
     }
+    await interaction.reply({
+      content: `🏅 **${interaction.user.username}** — Level ${user.level}, XP: ${user.xp}/100`,
+      ephemeral: true,
+    });
   }
 });
 
-// ======================================
-// XP System — Gain XP for Meme Channels
-// ======================================
-client.on("messageCreate", async (message) => {
-  if (message.author.bot) return;
+// ============================================
+// Error Safety
+// ============================================
+client.on("error", (err) => console.error("Client error:", err));
+client.on("shardError", (err) => console.error("Shard error:", err));
+process.on("unhandledRejection", (err) => console.error("Unhandled rejection:", err));
 
-  const allowedChannels = ["meme-plaza", "earth-420", "wholesome-verse", "void-of-dankness"];
-  if (!allowedChannels.some(name => message.channel.name.includes(name))) return;
-
-  const randomXp = Math.floor(Math.random() * 10) + 5;
-  const hasLeveledUp = await Levels.appendXp(message.author.id, message.guild.id, randomXp);
-
-  if (hasLeveledUp) {
-    const user = await Levels.fetch(message.author.id, message.guild.id);
-    message.channel.send(`🎉 ${message.author} has reached **Level ${user.level}**!`);
-  }
-});
-
-
-// ✅ Prevent bot from crashing on random Discord API errors
-client.on("error", err => console.error("Client error:", err));
-client.on("shardError", err => console.error("Shard error:", err));
-process.on("unhandledRejection", err => console.error("Unhandled promise rejection:", err));
-
-// ======================================
+// ============================================
 // Login
-// ======================================
+// ============================================
 client.login(process.env.BOT_TOKEN);
+

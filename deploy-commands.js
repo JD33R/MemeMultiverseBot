@@ -1,48 +1,51 @@
-// ======================================
-// Meme Multiverse Bot — Command Deployer
-// ======================================
+// ============================================
+// Meme Multiverse Bot – Deploy Commands Script
+// ============================================
 
-const { REST, Routes } = require("discord.js");
 require("dotenv").config();
+const { REST, Routes, SlashCommandBuilder } = require("discord.js");
 
-// ===== Replace with your IDs =====
-const clientId = "1431638929789943832"; // your bot Application ID
-const guildId = "1431637325582176386";  // your Discord server ID
-const token = process.env.BOT_TOKEN;     // Reads from .env
+// Secure environment variables
+const TOKEN = process.env.BOT_TOKEN;
+const CLIENT_ID = process.env.CLIENT_ID;
+const GUILD_ID = process.env.GUILD_ID;
 
-// ===== Define slash commands =====
+// Check variables before running
+if (!TOKEN || !CLIENT_ID || !GUILD_ID) {
+  console.error("❌ Missing BOT_TOKEN, CLIENT_ID, or GUILD_ID in environment variables.");
+  process.exit(1);
+}
+
+// Define commands
 const commands = [
-  {
-    name: "setup-meme",
-    description: "🌀 Set up The Meme Multiverse server structure",
-  },
-  {
-    name: "reset-server",
-    description: "⚠️ Reset the server to a clean state",
-  },
-  {
-    name: "meme",
-    description: "🤣 Fetch a random meme from Reddit",
-  },
-  {
-    name: "rank",
-    description: "🏆 Check your meme XP level",
-  },
-];
+  new SlashCommandBuilder()
+    .setName("setup-meme")
+    .setDescription("🌀 Setup The Meme Multiverse server automatically."),
+  new SlashCommandBuilder()
+    .setName("reset-server")
+    .setDescription("⚠️ Delete all channels and roles to reset the server."),
+  new SlashCommandBuilder()
+    .setName("meme")
+    .setDescription("😂 Get a random meme from the multiverse."),
+  new SlashCommandBuilder()
+    .setName("rank")
+    .setDescription("🏅 Check your XP level and progress."),
+].map((command) => command.toJSON());
 
-// ===== Deploy Commands =====
-const rest = new REST({ version: "10" }).setToken(token);
+// REST client
+const rest = new REST({ version: "10" }).setToken(TOKEN);
 
+// Deploy commands
 (async () => {
   try {
     console.log("📡 Deploying slash commands...");
 
     await rest.put(
-      Routes.applicationGuildCommands(clientId, guildId),
+      Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
       { body: commands }
     );
 
-    console.log("✅ Successfully registered all slash commands!");
+    console.log("✅ Slash commands deployed successfully!");
   } catch (error) {
     console.error("❌ Error deploying commands:", error);
   }
