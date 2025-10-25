@@ -59,6 +59,28 @@ client.on("interactionCreate", async (interaction) => {
     return;
   }
 
+// Make a verify channel
+const verifyChannel = await guild.channels.create({
+  name: "✅│verify-here",
+  type: 0,
+});
+
+// Create a verify button
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+
+const verifyButton = new ButtonBuilder()
+  .setCustomId("verify_button")
+  .setLabel("✅ Verify")
+  .setStyle(ButtonStyle.Success);
+
+const row = new ActionRowBuilder().addComponents(verifyButton);
+
+// Send the message with the button
+await verifyChannel.send({
+  content: "👋 Welcome! Click the button below to verify and unlock the rest of the server!",
+  components: [row],
+});
+
   // =======================================================
   // /setup-meme
   // =======================================================
@@ -100,12 +122,27 @@ client.on("interactionCreate", async (interaction) => {
     }
 
     // Make a verify channel
-    const verifyChannel = await guild.channels.create({
-      name: "✅│verify-here",
-      type: 0,
-    });
+const verifyChannel = await guild.channels.create({
+  name: "✅│verify-here",
+  type: 0,
+});
 
-    await verifyChannel.send("👋 Welcome! Type `/verify` to unlock the rest of the server!");
+// Create a verify button
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+
+const verifyButton = new ButtonBuilder()
+  .setCustomId("verify_button")
+  .setLabel("✅ Verify")
+  .setStyle(ButtonStyle.Success);
+
+const row = new ActionRowBuilder().addComponents(verifyButton);
+
+// Send the message with the button
+await verifyChannel.send({
+  content: "👋 Welcome! Click the button below to verify and unlock the rest of the server!",
+  components: [row],
+});
+
 
     // Lock other channels
     const verifiedRole = guild.roles.cache.find((r) => r.name === "🌈 Normie");
