@@ -124,53 +124,57 @@ client.on("interactionCreate", async (interaction) => {
     return;
   }
 
-  // =======================================================
-  // /battle-start
-  // =======================================================
-  if (interaction.commandName === "battle-start") {
-    try {
-      // Let Discord know the bot is working
-      await interaction.deferReply({ ephemeral: true });
+ // =======================================================
+// /battle-start
+// =======================================================
+if (interaction.commandName === "battle-start") {
+  try {
+    // Respond right away so Discord doesn’t time out
+    await interaction.reply({ content: "⚙️ Starting the meme battle...", ephemeral: true });
 
-      // Find the #battle-arena channel
-      const battleChannel = interaction.guild.channels.cache.find(
-        (ch) => ch.name.includes("battle-arena")
-      );
+    // Find or create the #battle-arena channel
+    let battleChannel = interaction.guild.channels.cache.find(
+      (ch) => ch.name.includes("battle-arena")
+    );
 
-      if (!battleChannel) {
-        await interaction.editReply("❌ Couldn't find the #battle-arena channel!");
-        return;
-      }
+    if (!battleChannel) {
+      battleChannel = await interaction.guild.channels.create({
+        name: "🔥│battle-arena",
+        type: 0, // text channel
+      });
+    }
 
-      // Pick a random meme battle theme
-      const themes = [
-        "🔥 Dank Duel",
-        "💖 Wholesome Wars",
-        "💀 Cursed Clash",
-        "🌈 Template Takedown",
-        "🤖 AI Apocalypse",
-      ];
-      const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+    // Pick a random theme
+    const themes = [
+      "🔥 Dank Duel",
+      "💖 Wholesome Wars",
+      "💀 Cursed Clash",
+      "🌈 Template Takedown",
+      "🤖 AI Apocalypse",
+    ];
+    const randomTheme = themes[Math.floor(Math.random() * themes.length)];
 
-      // Send the announcement
-      const msg = await battleChannel.send(
-        `${randomTheme} has begun! Post your best memes below! 🗳️`
-      );
+    // Send the battle message
+    const msg = await battleChannel.send(
+      `${randomTheme} has begun! Post your best memes below! 🗳️`
+    );
 
-      // Add voting reactions
-      await msg.react("👍");
-      await msg.react("👎");
+    // Add voting reactions
+    await msg.react("👍");
+    await msg.react("👎");
 
-      await interaction.editReply("✅ Meme battle announcement posted!");
-    } catch (err) {
-      console.error(err);
-      if (interaction.deferred) {
-        await interaction.editReply("⚠️ Something went wrong starting the battle.");
-      } else {
-        await interaction.reply("⚠️ Something went wrong starting the battle.");
-      }
+    // Update the ephemeral reply to show success
+    await interaction.editReply("✅ Meme battle announcement posted!");
+  } catch (err) {
+    console.error("❌ Error starting battle:", err);
+    if (interaction.replied || interaction.deferred) {
+      await interaction.editReply("⚠️ Something went wrong starting the battle.");
+    } else {
+      await interaction.reply("⚠️ Something went wrong starting the battle.");
     }
   }
+}
+
 });
 
 // ==================== LOGIN ====================
