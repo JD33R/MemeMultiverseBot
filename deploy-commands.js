@@ -1,35 +1,31 @@
-const { REST, Routes, SlashCommandBuilder } = require("discord.js");
-
-const token = "MTQzMTYzODkyOTc4OTk0MzgzMg.G-83r2.1PbU4itiEK-IpzizQdxu2ssQXxNdauthLCmcU0";
-const clientId = "1431638929789943832";
-const guildId = "1431637325582176386";
+require("dotenv").config();
+const { REST, Routes } = require("discord.js");
 
 const commands = [
-  new SlashCommandBuilder()
-    .setName("setup-meme")
-    .setDescription("Sets up the Meme Multiverse server structure.")
-    .toJSON(),
-  new SlashCommandBuilder()
-    .setName("reset-server")
-    .setDescription("Deletes all channels and roles for a clean rebuild.")
-    .toJSON(),
-  new SlashCommandBuilder()
-    .setName("verify")
-    .setDescription("Verify yourself to access the rest of the server.")
-    .toJSON(),
+  {
+    name: "setup-meme",
+    description: "Set up The Meme Multiverse server structure",
+  },
+  {
+    name: "reset-server",
+    description: "Reset all channels and roles in the server",
+  },
+  {
+    name: "battle-start",
+    description: "Start a new meme battle announcement!",
+  },
 ];
 
-const rest = new REST({ version: "10" }).setToken(token);
+const clientId = "1431638929789943832"; // Your bot's Application ID
+const guildId = "1431637325582176386";  // Replace this with your Discord server ID
 
-// ✅ Wrap in an async IIFE (immediately-invoked function)
+const rest = new REST({ version: "10" }).setToken(process.env.BOT_TOKEN);
+
 (async () => {
   try {
     console.log("📡 Deploying slash commands...");
-    await rest.put(
-      Routes.applicationGuildCommands(clientId, guildId),
-      { body: commands }
-    );
-    console.log("✅ Slash commands deployed successfully!");
+    await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: commands });
+    console.log("✅ Slash commands deployed!");
   } catch (error) {
     console.error("❌ Error deploying commands:", error);
   }

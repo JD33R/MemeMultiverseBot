@@ -67,6 +67,48 @@ client.on("interactionCreate", async (interaction) => {
     return;
   }
 
+
+// =======================================================
+// /battle-start
+// =======================================================
+if (interaction.commandName === "battle-start") {
+  try {
+    await interaction.deferReply({ ephemeral: true }); // gives bot time
+
+    const battleChannel = interaction.guild.channels.cache.find(
+      (ch) => ch.name.includes("battle-arena")
+    );
+
+    if (!battleChannel) {
+      await interaction.editReply("❌ Couldn't find the #battle-arena channel!");
+      return;
+    }
+
+    // Random battle themes
+    const themes = [
+      "🔥 Dank Duel",
+      "💖 Wholesome Wars",
+      "💀 Cursed Clash",
+      "🌈 Template Takedown",
+      "🤖 AI Apocalypse",
+    ];
+    const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+
+    await battleChannel.send(
+      `${randomTheme} has begun! Post your best memes below! 🗳️`
+    );
+
+    await interaction.editReply("✅ Meme battle announcement posted!");
+  } catch (err) {
+    console.error(err);
+    if (interaction.deferred) {
+      await interaction.editReply("⚠️ Something went wrong starting the battle.");
+    } else {
+      await interaction.reply("⚠️ Something went wrong starting the battle.");
+    }
+  }
+}
+
   // =======================================================
   // /setup-meme
   // =======================================================
