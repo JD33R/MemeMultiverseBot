@@ -1,16 +1,16 @@
 // ======================================
-// Meme Multiverse Bot - Command Deployer
+// Meme Multiverse Bot — Command Deployer
 // ======================================
 
 const { REST, Routes } = require("discord.js");
 require("dotenv").config();
 
-const clientId = "1431638929789943832"; // your bot's Application ID
-const guildId = "1431637325582176386";  // your server ID
-const token = process.env.BOT_TOKEN;     // uses your .env
+// ===== Replace with your IDs =====
+const clientId = "1431638929789943832"; // your bot Application ID
+const guildId = "1431637325582176386";  // your Discord server ID
+const token = process.env.BOT_TOKEN;     // Reads from .env
 
-
-// ===== Define all slash commands =====
+// ===== Define slash commands =====
 const commands = [
   {
     name: "setup-meme",
@@ -26,22 +26,23 @@ const commands = [
   },
   {
     name: "rank",
-    description: "🏆 Check your meme level and XP",
+    description: "🏆 Check your meme XP level",
   },
 ];
 
-// ===== Deploy the commands =====
+// ===== Deploy Commands =====
 const rest = new REST({ version: "10" }).setToken(token);
 
 (async () => {
   try {
     console.log("📡 Deploying slash commands...");
 
-    await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
-      body: commands,
-    });
+    await rest.put(
+      Routes.applicationGuildCommands(clientId, guildId),
+      { body: commands }
+    );
 
-    console.log("✅ Successfully registered slash commands!");
+    console.log("✅ Successfully registered all slash commands!");
   } catch (error) {
     console.error("❌ Error deploying commands:", error);
   }

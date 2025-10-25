@@ -12,6 +12,7 @@
   "dependencies": {
     "discord-xp": "^1.1.16",
     "discord.js": "^14.24.0",
-    "dotenv": "^17.2.3"
+    "dotenv": "^17.2.3",
+    "node-fetch": "^2.7.0"
   }
 }

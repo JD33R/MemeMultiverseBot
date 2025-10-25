@@ -10,12 +10,11 @@ const {
   ButtonStyle,
 } = require("discord.js");
 const Levels = require("discord-xp");
-const fetch = require("node-fetch");
 const fs = require("fs");
 require("dotenv").config();
 
 const template = JSON.parse(fs.readFileSync("template.json", "utf8"));
-Levels.setURL("sqlite://meme_multiverse_levels.sqlite");
+// Levels.setURL("sqlite://meme_multiverse_levels.sqlite");
 
 const client = new Client({
   intents: [
