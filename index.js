@@ -220,6 +220,12 @@ client.on("messageCreate", async (message) => {
   }
 });
 
+
+// ✅ Prevent bot from crashing on random Discord API errors
+client.on("error", err => console.error("Client error:", err));
+client.on("shardError", err => console.error("Shard error:", err));
+process.on("unhandledRejection", err => console.error("Unhandled promise rejection:", err));
+
 // ======================================
 // Login
 // ======================================
