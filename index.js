@@ -223,21 +223,34 @@ client.on("interactionCreate", async (interaction) => {
     }
 
     // ===================================
-    // 😂 /meme
-    // ===================================
-    if (commandName === "meme") {
-      await interaction.reply({ content: "Fetching a meme...", flags: 64 });
-      const res = await fetch("https://meme-api.com/gimme");
-      const data = await res.json();
+// 😂 /meme
+// ===================================
+if (commandName === "meme") {
+  try {
+    // Immediately acknowledge the command to avoid "Unknown interaction"
+    await interaction.deferReply();
 
-      const embed = new EmbedBuilder()
-        .setTitle(data.title)
-        .setImage(data.url)
-        .setFooter({ text: `👍 ${data.ups} | r/${data.subreddit}` })
-        .setColor("Random");
+    // Fetch meme data
+    const res = await fetch("https://meme-api.com/gimme");
+    const data = await res.json();
 
-      await interaction.followUp({ embeds: [embed], flags: 64 });
+    // Build the embed
+    const embed = new EmbedBuilder()
+      .setTitle(data.title || "Random Meme 😂")
+      .setImage(data.url)
+      .setFooter({ text: `👍 ${data.ups || 0} | r/${data.subreddit || "unknown"}` })
+      .setColor("Random");
+
+    // Send meme after deferral
+    await interaction.editReply({ embeds: [embed] });
+
+  } catch (err) {
+    console.error("Meme command error:", err);
+    if (!interaction.replied) {
+      await interaction.reply({ content: "❌ Failed to fetch meme. Try again later!" });
     }
+  }
+}
 
     // ===================================
     // 🧩 /rank
