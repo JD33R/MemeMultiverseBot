@@ -173,153 +173,330 @@ if (interaction.isButton() && interaction.customId === "verify_button") {
       return interaction.followUp({ content: "✅ Reset done.", ephemeral: true }).catch(() => {});
     }
 
-    // ===================================
-// 🧱 /setup-meme
-// ===================================
-if (commandName === "setup-meme") {
+    // ================================
+// 🎯 Interaction Handler (Fixed)
+// ================================
+client.on("interactionCreate", async (interaction) => {
   try {
-    // Safely defer (avoids Unknown Interaction)
-    if (!interaction.deferred && !interaction.replied) {
-      await interaction.deferReply({ ephemeral: true });
-    }
-
-    await interaction.editReply("🌀 Setting up The Meme Multiverse...");
-
-    // --- Define roles with permissions safely ---
-    const wantRoles = [
-      { name: "👑 Meme Lord", color: "#FFD700", perms: [PermissionsBitField.Flags.Administrator] },
-      {
-        name: "🧱 Moderator",
-        color: "#FF4500",
-        perms: [
-          PermissionsBitField.Flags.ManageChannels,
-          PermissionsBitField.Flags.KickMembers,
-          PermissionsBitField.Flags.BanMembers,
-          PermissionsBitField.Flags.ManageMessages,
-          PermissionsBitField.Flags.ManageRoles,
-          PermissionsBitField.Flags.ViewAuditLog,
-        ],
-      },
-      { name: "🤖 The Overseer (Bot)", color: "#00FFFF", perms: [PermissionsBitField.Flags.ManageGuild] },
-      { name: "🪖 Shitposter", color: "#FF69B4", perms: [] },
-      { name: "🌈 Normie", color: "#7289DA", perms: [] },
-      { name: "🧑‍🎨 Template Alchemist", color: "#32CD32", perms: [] },
-      { name: "🕵️ Meme Historian", color: "#9932CC", perms: [] },
-    ];
-
-    // --- Create roles if missing ---
-    for (const r of wantRoles) {
-      const existing = guild.roles.cache.find(x => x.name === r.name);
-      if (!existing) {
-        try {
-          await guild.roles.create({
-            name: r.name,
-            color: r.color,
-            permissions: r.perms,
-          });
-        } catch (e) {
-          console.log(`Role creation error (${r.name}): ${e.message}`);
-        }
-      }
-    }
-
-    // Refresh references
-    const everyone = guild.roles.everyone;
-    const normie = guild.roles.cache.find(r => r.name === "🌈 Normie");
-    const mod = guild.roles.cache.find(r => r.name === "🧱 Moderator");
-    const lord = guild.roles.cache.find(r => r.name === "👑 Meme Lord");
-    const botRole = guild.roles.cache.find(r => r.name === "🤖 The Overseer (Bot)");
-
-    // --- Build categories and channels ---
-    for (const category of template.categories || []) {
-      let cat;
+    // ===============================
+    // 🖱️ Verify Button (Fixed)
+    // ===============================
+    if (interaction.isButton() && interaction.customId === "verify_button") {
       try {
-        cat = await guild.channels.create({
-          name: category.name,
-          type: 4, // Category
-        });
-      } catch (e) {
-        console.log(`Category create error (${category.name}): ${e.message}`);
-        continue;
-      }
+        if (!interaction.deferred && !interaction.replied) {
+          await interaction.deferReply({ ephemeral: true });
+        }
 
-      // Category permissions
-      if (category.name.includes("STAFF AREA")) {
-        await cat.permissionOverwrites.create(everyone, { ViewChannel: false }).catch(() => {});
-        if (lord) await cat.permissionOverwrites.create(lord, { ViewChannel: true }).catch(() => {});
-        if (mod) await cat.permissionOverwrites.create(mod, { ViewChannel: true }).catch(() => {});
-        if (botRole) await cat.permissionOverwrites.create(botRole, { ViewChannel: true }).catch(() => {});
-      } else {
-        await cat.permissionOverwrites.create(everyone, { ViewChannel: false }).catch(() => {});
-        if (normie) await cat.permissionOverwrites.create(normie, { ViewChannel: true }).catch(() => {});
-      }
-
-      // Create text/voice channels under category
-      for (const ch of category.channels || []) {
-        try {
-          const newCh = await guild.channels.create({
-            name: ch.name,
-            type: ch.type === "voice" ? 2 : 0,
-            parent: cat.id,
+        const guild = interaction.guild;
+        if (!guild) {
+          return await interaction.followUp({
+            content: "❌ This button only works inside a server.",
+            ephemeral: true,
           });
+        }
 
-          if (!category.name.includes("STAFF AREA")) {
-            await newCh.permissionOverwrites.create(everyone, { ViewChannel: false }).catch(() => {});
-            if (normie) await newCh.permissionOverwrites.create(normie, { ViewChannel: true }).catch(() => {});
+        const member = await guild.members.fetch(interaction.user.id).catch(() => null);
+        if (!member) {
+          return await interaction.followUp({
+            content: "❌ Could not find your member profile.",
+            ephemeral: true,
+          });
+        }
+
+        const normieRole = guild.roles.cache.find((r) => r.name === "🌈 Normie");
+        if (!normieRole) {
+          return await interaction.followUp({
+            content: "⚠️ The **🌈 Normie** role doesn’t exist yet! Please ask a moderator.",
+            ephemeral: true,
+          });
+        }
+
+        await member.roles.add(normieRole).catch((e) => console.error("Add role error:", e));
+
+        await interaction.followUp({
+          content: "✅ You’re verified! Welcome to the Meme Multiverse!",
+          ephemeral: true,
+        });
+        return; // ✅ stop here
+      } catch (err) {
+        console.error("Verify button error:", err);
+        const message = "❌ Something went wrong while verifying you. Try again later!";
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({ content: message, ephemeral: true }).catch(() => {});
+        } else {
+          await interaction.followUp({ content: message, ephemeral: true }).catch(() => {});
+        }
+        return;
+      }
+    }
+
+    // ===============================
+    // 🧠 Slash Commands
+    // ===============================
+    if (!interaction.isChatInputCommand()) return;
+
+    const { commandName, guild } = interaction;
+    if (!guild) {
+      await interaction.reply({
+        content: "❌ This command can only be used inside a server.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    // ===================================
+    // 🔁 /reset-server
+    // ===================================
+    if (commandName === "reset-server") {
+      await ensureDeferred(interaction, { ephemeral: true });
+      await interaction.editReply("⚠️ Resetting the server...");
+
+      // Delete channels
+      for (const [, channel] of guild.channels.cache) {
+        try {
+          await channel.delete();
+        } catch (err) {
+          console.log(`Couldn't delete channel ${channel?.name || channel?.id}: ${err.message}`);
+        }
+      }
+
+      // Delete roles (except @everyone & managed)
+      for (const [, role] of guild.roles.cache) {
+        if (role.name !== "@everyone" && !role.managed) {
+          try {
+            await role.delete();
+          } catch (err) {
+            console.log(`Couldn't delete role ${role.name}: ${err.message}`);
           }
-        } catch (e) {
-          console.log(`Channel create error (${ch.name}): ${e.message}`);
+        }
+      }
+
+      // Create a temporary locked channel
+      const everyoneRole = guild.roles.everyone;
+      const tempChannel = await guild.channels.create({
+        name: "📜│bot-commands",
+        type: 0,
+      });
+
+      await tempChannel.permissionOverwrites.create(everyoneRole, { ViewChannel: false }).catch(() => {});
+      await tempChannel
+        .send("✅ Server reset complete! Type `/setup-meme` here to rebuild the server (admins only).")
+        .catch(() => {});
+
+      await interaction.followUp({ content: "✅ Reset done.", ephemeral: true }).catch(() => {});
+      return;
+    }
+
+   // ================================
+// 🎯 Interaction Handler (Cleaned)
+// ================================
+client.on("interactionCreate", async (interaction) => {
+  try {
+    // ===============================
+    // 🖱️ Verify Button
+    // ===============================
+    if (interaction.isButton() && interaction.customId === "verify_button") {
+      await ensureDeferred(interaction, { ephemeral: true });
+
+      const guild = interaction.guild;
+      if (!guild) return interaction.editReply("❌ This button only works in a server.");
+
+      const member = await guild.members.fetch(interaction.user.id).catch(() => null);
+      if (!member) return interaction.editReply("❌ Could not find your member profile.");
+
+      const normieRole = guild.roles.cache.find((r) => r.name === "🌈 Normie");
+      if (!normieRole) return interaction.editReply("⚠️ The **🌈 Normie** role doesn’t exist yet!");
+
+      await member.roles.add(normieRole).catch((e) => console.error("Add role error:", e));
+      return interaction.editReply("✅ You’re verified! Welcome to the Meme Multiverse!");
+    }
+
+    // 🧠 Ignore non-slash interactions
+    if (!interaction.isChatInputCommand()) return;
+
+    const { commandName, guild } = interaction;
+    if (!guild) {
+      await ensureDeferred(interaction, { ephemeral: true });
+      return interaction.editReply("❌ This command can only be used in a server.");
+    }
+
+    // ===================================
+    // 🔁 /reset-server
+    // ===================================
+    if (commandName === "reset-server") {
+      await ensureDeferred(interaction, { ephemeral: true });
+      await interaction.editReply("⚠️ Resetting the server...");
+
+      // Delete channels
+      for (const [, channel] of guild.channels.cache) {
+        try {
+          await channel.delete();
+        } catch (err) {
+          console.log(`Couldn't delete channel ${channel?.name || channel?.id}: ${err.message}`);
+        }
+      }
+
+      // Delete roles (except @everyone & managed)
+      for (const [, role] of guild.roles.cache) {
+        if (role.name !== "@everyone" && !role.managed) {
+          try {
+            await role.delete();
+          } catch (err) {
+            console.log(`Couldn't delete role ${role.name}: ${err.message}`);
+          }
+        }
+      }
+
+      // Create a temporary locked channel
+      const everyoneRole = guild.roles.everyone;
+      const tempChannel = await guild.channels.create({
+        name: "📜│bot-commands",
+        type: 0,
+      });
+
+      await tempChannel.permissionOverwrites.create(everyoneRole, { ViewChannel: false }).catch(() => {});
+      await tempChannel
+        .send("✅ Server reset complete! Type `/setup-meme` here to rebuild the server (admins only).")
+        .catch(() => {});
+      return interaction.followUp({ content: "✅ Reset done.", ephemeral: true }).catch(() => {});
+    }
+
+    // ===================================
+    // 🧱 /setup-meme
+    // ===================================
+    if (commandName === "setup-meme") {
+      try {
+        if (!interaction.deferred && !interaction.replied) {
+          await interaction.deferReply({ ephemeral: true });
+        }
+
+        await interaction.editReply("🌀 Setting up The Meme Multiverse...");
+
+        // --- Define roles with permissions safely ---
+        const wantRoles = [
+          { name: "👑 Meme Lord", color: "#FFD700", perms: [PermissionsBitField.Flags.Administrator] },
+          {
+            name: "🧱 Moderator",
+            color: "#FF4500",
+            perms: [
+              PermissionsBitField.Flags.ManageChannels,
+              PermissionsBitField.Flags.KickMembers,
+              PermissionsBitField.Flags.BanMembers,
+              PermissionsBitField.Flags.ManageMessages,
+              PermissionsBitField.Flags.ManageRoles,
+              PermissionsBitField.Flags.ViewAuditLog,
+            ],
+          },
+          { name: "🤖 The Overseer (Bot)", color: "#00FFFF", perms: [PermissionsBitField.Flags.ManageGuild] },
+          { name: "🪖 Shitposter", color: "#FF69B4", perms: [] },
+          { name: "🌈 Normie", color: "#7289DA", perms: [] },
+          { name: "🧑‍🎨 Template Alchemist", color: "#32CD32", perms: [] },
+          { name: "🕵️ Meme Historian", color: "#9932CC", perms: [] },
+        ];
+
+        // --- Create roles if missing ---
+        for (const r of wantRoles) {
+          const existing = guild.roles.cache.find((x) => x.name === r.name);
+          if (!existing) {
+            try {
+              await guild.roles.create({
+                name: r.name,
+                color: r.color,
+                permissions: r.perms,
+              });
+            } catch (e) {
+              console.log(`Role creation error (${r.name}): ${e.message}`);
+            }
+          }
+        }
+
+        // Refresh references
+        const everyone = guild.roles.everyone;
+        const normie = guild.roles.cache.find((r) => r.name === "🌈 Normie");
+        const mod = guild.roles.cache.find((r) => r.name === "🧱 Moderator");
+        const lord = guild.roles.cache.find((r) => r.name === "👑 Meme Lord");
+        const botRole = guild.roles.cache.find((r) => r.name === "🤖 The Overseer (Bot)");
+
+        // --- Build categories and channels ---
+        for (const category of template.categories || []) {
+          let cat;
+          try {
+            cat = await guild.channels.create({
+              name: category.name,
+              type: 4,
+            });
+          } catch (e) {
+            console.log(`Category create error (${category.name}): ${e.message}`);
+            continue;
+          }
+
+          if (category.name.includes("STAFF AREA")) {
+            await cat.permissionOverwrites.create(everyone, { ViewChannel: false }).catch(() => {});
+            if (lord) await cat.permissionOverwrites.create(lord, { ViewChannel: true }).catch(() => {});
+            if (mod) await cat.permissionOverwrites.create(mod, { ViewChannel: true }).catch(() => {});
+            if (botRole) await cat.permissionOverwrites.create(botRole, { ViewChannel: true }).catch(() => {});
+          } else {
+            await cat.permissionOverwrites.create(everyone, { ViewChannel: false }).catch(() => {});
+            if (normie) await cat.permissionOverwrites.create(normie, { ViewChannel: true }).catch(() => {});
+          }
+
+          for (const ch of category.channels || []) {
+            try {
+              const newCh = await guild.channels.create({
+                name: ch.name,
+                type: ch.type === "voice" ? 2 : 0,
+                parent: cat.id,
+              });
+
+              if (!category.name.includes("STAFF AREA")) {
+                await newCh.permissionOverwrites.create(everyone, { ViewChannel: false }).catch(() => {});
+                if (normie) await newCh.permissionOverwrites.create(normie, { ViewChannel: true }).catch(() => {});
+              }
+            } catch (e) {
+              console.log(`Channel create error (${ch.name}): ${e.message}`);
+            }
+          }
+        }
+
+        // === Create Verify Channel ===
+        const verifyChannel = await guild.channels.create({
+          name: "✅│verify-here",
+          type: 0,
+        });
+
+        await verifyChannel.permissionOverwrites
+          .create(everyone, {
+            ViewChannel: true,
+            SendMessages: true,
+            ReadMessageHistory: true,
+          })
+          .catch(() => {});
+
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId("verify_button").setLabel("✅ Verify").setStyle(ButtonStyle.Success)
+        );
+
+        await verifyChannel
+          .send({
+            content: "👋 Welcome! Click the **Verify** button below to unlock the rest of the Meme Multiverse!",
+            components: [row],
+          })
+          .catch(() => {});
+
+        // 🧹 Cleanup old temp channel
+        const oldBotChannel = guild.channels.cache.find((ch) => ch.name === "📜│bot-commands");
+        if (oldBotChannel) await oldBotChannel.delete().catch(() => {});
+
+        await interaction.editReply("🎉 Setup complete! New members will only see **verify** until they verify.");
+      } catch (error) {
+        console.error("Setup error:", error);
+        if (!interaction.deferred && !interaction.replied) {
+          await interaction.reply({ content: `❌ Setup failed: ${error.message}`, ephemeral: true }).catch(() => {});
+        } else {
+          await interaction.editReply(`❌ Setup failed: ${error.message}`).catch(() => {});
         }
       }
     }
-
-    // === Verify Channel (only create once) ===
-    let verifyChannel = guild.channels.cache.find(ch => ch.name === "✅│verify-here");
-    if (!verifyChannel) {
-      verifyChannel = await guild.channels.create({
-        name: "✅│verify-here",
-        type: 0, // text channel
-      });
-
-      await verifyChannel.permissionOverwrites.create(everyone, {
-        ViewChannel: true,
-        SendMessages: true,
-        ReadMessageHistory: true,
-      }).catch(() => {});
-
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId("verify_button")
-          .setLabel("✅ Verify")
-          .setStyle(ButtonStyle.Success)
-      );
-
-      await verifyChannel.send({
-        content: "👋 Welcome! Click the **Verify** button below to unlock the rest of the Meme Multiverse!",
-        components: [row],
-      });
-    }
-
-    // 🧹 Delete temp channel if exists
-    const oldBotChannel = guild.channels.cache.find(ch => ch.name === "📜│bot-commands");
-    if (oldBotChannel) await oldBotChannel.delete().catch(() => {});
-
-    // ✅ Finish setup safely
-    if (interaction.deferred || interaction.replied) {
-      await interaction.editReply("🎉 Setup complete! New members will only see **verify** until they verify.");
-    } else {
-      await interaction.reply("🎉 Setup complete! New members will only see **verify** until they verify.");
-    }
-
-  } catch (error) {
-    console.error("Setup error:", error);
-    if (!interaction.deferred && !interaction.replied) {
-      await interaction.reply({ content: `❌ Setup failed: ${error.message}`, ephemeral: true }).catch(() => {});
-    } else {
-      await interaction.editReply(`❌ Setup failed: ${error.message}`).catch(() => {});
-    }
-  }
-}
 
     // ===================================
     // 🧠 /verify (manual)
@@ -336,6 +513,11 @@ if (commandName === "setup-meme") {
       await member.roles.add(role).catch((e) => console.log("Add role error:", e.message));
       return interaction.editReply("✅ You’re verified! Welcome!");
     }
+  } catch (err) {
+    console.error("Interaction error:", err);
+  }
+});
+
 
     // ===================================
     // 😂 /meme
