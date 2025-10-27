@@ -99,98 +99,116 @@ client.on("interactionCreate", async (interaction) => {
     }
 
     // ===================================
-    // 🧱 /setup-meme
-    // ===================================
-    if (commandName === "setup-meme") {
-      try {
-  if (interaction.deferred || interaction.replied) {
-    console.log("Interaction already acknowledged.");
-  } else {
-    await interaction.deferReply({ flags: 64 }); // "ephemeral" replacement
-  }
+// 🧱 /setup-meme
+// ===================================
+if (commandName === "setup-meme") {
+  try {
+    // Immediately acknowledge to avoid "Unknown interaction"
+    if (interaction.deferred || interaction.replied) {
+      console.log("Interaction already acknowledged.");
+    } else {
+      await interaction.deferReply({ flags: 64 }); // replaces ephemeral: true
+    }
 
-  await interaction.followUp({ content: "🌀 Setting up The Meme Multiverse..." });
+    await interaction.followUp({ content: "🌀 Setting up The Meme Multiverse..." });
 
-      const template = JSON.parse(fs.readFileSync("template.json", "utf8"));
+    // Create roles
+    for (const role of template.roles) {
+      const roleData = {
+        name: role.name,
+        permissions: new PermissionsBitField(role.permissions || []),
+        color: role.color || null,
+      };
+      await guild.roles.create(roleData).catch(err =>
+        console.log(`Role creation error for ${role.name}: ${err.message}`)
+      );
+    }
 
-      // === Create Roles ===
-      for (const role of template.roles) {
-        const roleData = {
-          name: role.name,
-          permissions: new PermissionsBitField(role.permissions || 0),
-          color: role.color || null,
-        };
-        await guild.roles.create(roleData).catch(err => console.log(`Role error: ${err.message}`));
+    // Create categories and channels
+    for (const category of template.categories) {
+      const cat = await guild.channels.create({
+        name: category.name,
+        type: 4,
+      });
+
+      const everyone = guild.roles.everyone;
+      const normie = guild.roles.cache.find(r => r.name === "🌈 Normie");
+      const mod = guild.roles.cache.find(r => r.name === "🧱 Moderator");
+      const lord = guild.roles.cache.find(r => r.name === "👑 Meme Lord");
+      const bot = guild.roles.cache.find(r => r.name === "🤖 The Overseer (Bot)");
+
+      // 🏛️ Staff area — only visible to staff and bot
+      if (category.name.includes("STAFF AREA")) {
+        await cat.permissionOverwrites.create(everyone, { ViewChannel: false });
+        if (lord) await cat.permissionOverwrites.create(lord, { ViewChannel: true });
+        if (mod) await cat.permissionOverwrites.create(mod, { ViewChannel: true });
+        if (bot) await cat.permissionOverwrites.create(bot, { ViewChannel: true });
+      } else {
+        // Other areas — hidden from everyone except verified users
+        await cat.permissionOverwrites.create(everyone, { ViewChannel: false });
+        if (normie) await cat.permissionOverwrites.create(normie, { ViewChannel: true });
       }
 
-      // === Create Categories & Channels ===
-      for (const category of template.categories) {
-        const cat = await guild.channels.create({
-          name: category.name,
-          type: 4,
+      // Create channels inside category
+      for (const channel of category.channels) {
+        const ch = await guild.channels.create({
+          name: channel.name,
+          type: channel.type === "voice" ? 2 : 0,
+          parent: cat.id,
         });
 
-        const everyone = guild.roles.everyone;
-        const normie = guild.roles.cache.find(r => r.name === "🌈 Normie");
-        const mod = guild.roles.cache.find(r => r.name === "🧱 Moderator");
-        const lord = guild.roles.cache.find(r => r.name === "👑 Meme Lord");
-        const bot = guild.roles.cache.find(r => r.name === "🤖 The Overseer (Bot)");
-
-        if (category.name.includes("STAFF AREA")) {
-          await cat.permissionOverwrites.create(everyone, { ViewChannel: false });
-          if (lord) await cat.permissionOverwrites.create(lord, { ViewChannel: true });
-          if (mod) await cat.permissionOverwrites.create(mod, { ViewChannel: true });
-          if (bot) await cat.permissionOverwrites.create(bot, { ViewChannel: true });
-        } else {
-          await cat.permissionOverwrites.create(everyone, { ViewChannel: false });
-          if (normie) await cat.permissionOverwrites.create(normie, { ViewChannel: true });
-        }
-
-        for (const channel of category.channels) {
-          const ch = await guild.channels.create({
-            name: channel.name,
-            type: channel.type === "voice" ? 2 : 0,
-            parent: cat.id,
-          });
-
-          if (!category.name.includes("STAFF AREA")) {
-            await ch.permissionOverwrites.create(everyone, { ViewChannel: false });
-            if (normie) await ch.permissionOverwrites.create(normie, { ViewChannel: true });
-          }
+        if (!category.name.includes("STAFF AREA")) {
+          await ch.permissionOverwrites.create(everyone, { ViewChannel: false });
+          if (normie) await ch.permissionOverwrites.create(normie, { ViewChannel: true });
         }
       }
-
-      // === Verify Channel ===
-      const verifyChannel = await guild.channels.create({
-        name: "✅│verify-here",
-        type: 0,
-      });
-
-      const everyoneRole = guild.roles.everyone;
-      await verifyChannel.permissionOverwrites.create(everyoneRole, {
-        ViewChannel: true,
-        SendMessages: true,
-        ReadMessageHistory: true,
-      });
-
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId("verify_button")
-          .setLabel("✅ Verify")
-          .setStyle(ButtonStyle.Success)
-      );
-
-      await verifyChannel.send({
-        content: "👋 Welcome! Click **Verify** below to unlock the Meme Multiverse!",
-        components: [row],
-      });
-
-      if (!interaction.replied) {
-  await interaction.followUp({ content: "🎉 Setup complete! Only new members will see the verify channel until they verify." });
-} else {
-  await interaction.editReply({ content: "🎉 Setup complete! Only new members will see the verify channel until they verify." });
-}
     }
+
+    // === Create Verify Channel ===
+    const verifyChannel = await guild.channels.create({
+      name: "✅│verify-here",
+      type: 0,
+    });
+
+    const everyoneRole = guild.roles.everyone;
+    await verifyChannel.permissionOverwrites.create(everyoneRole, {
+      ViewChannel: true,
+      SendMessages: true,
+      ReadMessageHistory: true,
+    });
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("verify_button")
+        .setLabel("✅ Verify")
+        .setStyle(ButtonStyle.Success)
+    );
+
+    await verifyChannel.send({
+      content: "👋 Welcome! Click the **Verify** button below to unlock the rest of the Meme Multiverse!",
+      components: [row],
+    });
+
+    // Delete old bot-commands channel if it exists
+    const oldBotChannel = guild.channels.cache.find(ch => ch.name === "📜│bot-commands");
+    if (oldBotChannel) await oldBotChannel.delete().catch(() => {});
+
+    // ✅ Finish setup safely
+    if (!interaction.replied) {
+      await interaction.followUp({ content: "🎉 Setup complete! Only new members will see the verify channel until they verify." });
+    } else {
+      await interaction.editReply({ content: "🎉 Setup complete! Only new members will see the verify channel until they verify." });
+    }
+
+  } catch (error) {
+    console.error("Setup error:", error);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({ content: `❌ Setup failed: ${error.message}`, flags: 64 });
+    } else {
+      await interaction.followUp({ content: `❌ Setup failed: ${error.message}`, flags: 64 });
+    }
+  }
+}
 
     // ===================================
     // 🧠 /verify (manual)
