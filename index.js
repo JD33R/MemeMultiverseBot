@@ -90,8 +90,14 @@ client.on("interactionCreate", async (interaction) => {
         try { await role.delete(); } catch (err) { console.error(`Couldn't delete role ${role.name}:`, err.message); }
       }
     }
-    const tempChannel = await guild.channels.create({ name: "📜│bot-commands", type: 0 });
-    await tempChannel.send("✅ Server reset complete! Type `/setup-meme` here to rebuild the Meme Multiverse!");
+   const everyoneRole = guild.roles.everyone;
+const tempChannel = await guild.channels.create({
+  name: "📜│bot-commands",
+  type: 0,
+});
+
+await tempChannel.permissionOverwrites.create(everyoneRole, { ViewChannel: false });
+await tempChannel.send("✅ Server reset complete! Type `/setup-meme` here to rebuild the server (admins only).");
   }
 
   // ===================================
