@@ -242,70 +242,63 @@ client.on("interactionCreate", async (interaction) => {
       return interaction.editReply("❌ This command can only be used in a server.");
     }
 
-    // ===================================
-// 🔁 /reset-server (Safe version)
+   // ===================================
+// 🔁 /reset-server (Fixed & Safe)
 // ===================================
 if (commandName === "reset-server") {
+  const { guild } = interaction;
   try {
-    // Safely defer early
-    await ensureDeferred(interaction, { ephemeral: true });
-    await interaction.editReply("⚠️ Resetting the server...");
+    // ✅ Always defer first to avoid InteractionNotReplied
+    await ensureDeferred(interaction, { ephemeral: true }).catch(() => {});
+    await interaction.editReply("⚠️ Resetting the server...").catch(() => {});
 
-    const { guild } = interaction;
-
-    // --- Step 1: Create a temporary safe channel before deleting ---
-    const tempChannel = await guild.channels.create({
-      name: "📜│bot-commands",
-      type: 0, // text
-    });
-
-    const everyone = guild.roles.everyone;
-    await tempChannel.permissionOverwrites
-      .create(everyone, { ViewChannel: false })
-      .catch(() => {});
-
-    await tempChannel.send("🌀 The reset is in progress... Please wait!");
-
-    // --- Step 2: Delete old channels except the one we just made ---
+    // Delete all channels
     for (const [, channel] of guild.channels.cache) {
-      if (channel.id === tempChannel.id) continue; // skip the safe channel
       try {
-        await channel.delete();
+        await channel.delete().catch(() => {});
       } catch (err) {
-        console.log(`Couldn't delete channel ${channel.name}: ${err.message}`);
+        console.log(`Couldn't delete ${channel?.name || "unknown"}: ${err.message}`);
       }
     }
 
-    // --- Step 3: Delete roles safely ---
+    // Delete roles (except @everyone & managed)
     for (const [, role] of guild.roles.cache) {
       if (role.name !== "@everyone" && !role.managed) {
         try {
-          await role.delete();
+          await role.delete().catch(() => {});
         } catch (err) {
           console.log(`Couldn't delete role ${role.name}: ${err.message}`);
         }
       }
     }
 
-    // --- Step 4: Notify user via tempChannel ---
-    await tempChannel.send(
-      "✅ Server reset complete! Type `/setup-meme` here to rebuild the Meme Multiverse (admins only)."
-    );
+    // ✅ Create a temporary locked channel
+    const everyoneRole = guild.roles.everyone;
+    const tempChannel = await guild.channels.create({
+      name: "📜│bot-commands",
+      type: 0, // text
+    });
 
-    // --- Step 5: Try editing interaction only if message still exists ---
-    try {
-      await interaction.editReply("✅ Reset complete! You can now rebuild the server.");
-    } catch {
-      console.log("Interaction reply no longer exists (expected during channel deletion).");
-    }
+    await tempChannel.permissionOverwrites.create(everyoneRole, { ViewChannel: false }).catch(() => {});
+    await tempChannel
+      .send("✅ Server reset complete! Type `/setup-meme` here to rebuild the server (admins only).")
+      .catch(() => {});
+
+    // ✅ Safely finalize the interaction (avoids Unknown Message)
+    await interaction
+      .followUp({
+        content: "✅ Reset complete! A temporary `📜│bot-commands` channel has been created.",
+        ephemeral: true,
+      })
+      .catch(() => {
+        console.log("Interaction expired — reset completed successfully.");
+      });
   } catch (error) {
     console.error("Reset server error:", error);
-    if (!interaction.deferred && !interaction.replied) {
-      await interaction.reply({
-        content: `❌ Reset failed: ${error.message}`,
-        ephemeral: true,
-      }).catch(() => {});
-    }
+    const msg = `❌ Reset failed: ${error.message}`;
+    if (!interaction.replied && !interaction.deferred)
+      await interaction.reply({ content: msg, ephemeral: true }).catch(() => {});
+    else await interaction.followUp({ content: msg, ephemeral: true }).catch(() => {});
   }
 }
 
@@ -418,14 +411,12 @@ if (commandName === "setup-meme") {
 
     if (guideChannel) {
       const adminCommands = `
-👑 **Admin Commands**
 > 🧱 \`/setup-meme\` — Builds the Meme Multiverse server  
 > 🔁 \`/reset-server\` — Deletes channels & roles, creates a rebuild channel  
 > 🧠 \`/verify\` — Manually verify a user  
 `;
 
       const publicCommands = `
-🌈 **Public Commands**
 > 🤖 \`/meme\` — Get a fresh meme from Reddit  
 > 🧩 \`/rank\` — View your XP progress  
 > ✅ **Verify Button** — Unlock the server  
