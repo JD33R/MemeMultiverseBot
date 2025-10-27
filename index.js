@@ -659,4 +659,16 @@ if (!process.env.BOT_TOKEN) {
   console.error("❌ BOT_TOKEN missing!");
   process.exit(1);
 }
+// ================================
+// 🌐 Keep-alive for Render
+// ================================
+const express = require("express");
+const app = express();
+
+app.get("/", (req, res) => {
+  res.send("Meme Multiverse Bot is online ✅");
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🌐 Web server running on port ${PORT}`));
 client.login(process.env.BOT_TOKEN);
