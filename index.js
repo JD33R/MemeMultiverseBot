@@ -68,7 +68,7 @@ client.on("interactionCreate", async (interaction) => {
     const normieRole = guild.roles.cache.find(r => r.name === "🌈 Normie");
 
     if (!normieRole)
-      return interaction.reply({ content: ⚠️ The Normie role doesn't exist yet!", ephemeral: true });
+      return interaction.reply({ content: "⚠️ The Normie role doesn't exist yet!", ephemeral: true });
 
     await member.roles.add(normieRole);
     return interaction.reply({ content: "✅ You’re verified! Welcome to the Meme Multiverse!", ephemeral: true });
