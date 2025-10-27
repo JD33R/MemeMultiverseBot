@@ -1,14 +1,17 @@
 {
   "name": "mememultiversebot",
   "version": "1.0.0",
-  "description": "",
+  "description": "A powerful Discord meme & XP bot for the Meme Multiverse server.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["discord", "bot", "meme", "xp", "fun"],
+  "author": "JD33R",
   "license": "ISC",
+  "engines": {
+    "node": "22.21.0"
+  },
   "dependencies": {
     "discord-xp": "^1.1.16",
     "discord.js": "^14.24.0",
