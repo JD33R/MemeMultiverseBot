@@ -243,27 +243,40 @@ client.on("interactionCreate", async (interaction) => {
     }
 
     // ===================================
-// 🔁 /reset-server (Fixed)
+// 🔁 /reset-server (Safe version)
 // ===================================
 if (commandName === "reset-server") {
   try {
-    // ✅ Always defer before doing anything
+    // Always defer first to acknowledge
     if (!interaction.deferred && !interaction.replied) {
       await interaction.deferReply({ ephemeral: true });
     }
 
-    await interaction.editReply("⚠️ Resetting the server... This might take a few seconds.");
+    await interaction.editReply("⚠️ Resetting the server... please wait a few seconds.");
 
-    // --- Delete all channels ---
+    const guild = interaction.guild;
+
+    // ✅ Create a temp channel FIRST so we always have one to message into
+    const everyoneRole = guild.roles.everyone;
+    const tempChannel = await guild.channels.create({
+      name: "📜│bot-commands",
+      type: 0, // text
+    });
+
+    await tempChannel.permissionOverwrites.create(everyoneRole, { ViewChannel: false }).catch(() => {});
+
+    // ✅ Now delete all other channels EXCEPT the temp one
     for (const [, channel] of guild.channels.cache) {
-      try {
-        await channel.delete();
-      } catch (err) {
-        console.log(`Couldn't delete channel ${channel?.name || channel?.id}: ${err.message}`);
+      if (channel.id !== tempChannel.id) {
+        try {
+          await channel.delete();
+        } catch (err) {
+          console.log(`Couldn't delete ${channel.name}: ${err.message}`);
+        }
       }
     }
 
-    // --- Delete all roles except @everyone & managed ones ---
+    // Delete roles (except @everyone & managed)
     for (const [, role] of guild.roles.cache) {
       if (role.name !== "@everyone" && !role.managed) {
         try {
@@ -274,21 +287,14 @@ if (commandName === "reset-server") {
       }
     }
 
-    // --- Create a temporary locked channel for bot commands ---
-    const everyoneRole = guild.roles.everyone;
-    const tempChannel = await guild.channels.create({
-      name: "📜│bot-commands",
-      type: 0, // Text channel
-    });
+    // ✅ Send success message in the temp channel (guaranteed to exist)
+    await tempChannel.send(
+      "✅ Server reset complete! Type `/setup-meme` here to rebuild the Meme Multiverse. (Admins only)"
+    );
 
-    await tempChannel.permissionOverwrites.create(everyoneRole, { ViewChannel: false }).catch(() => {});
-    await tempChannel
-      .send("✅ Server reset complete! Type `/setup-meme` here to rebuild the server (admins only).")
-      .catch(() => {});
-
-    // ✅ Use followUp after deferral to confirm completion
-    return interaction.followUp({
-      content: "✅ Reset complete! A temporary bot-commands channel has been created.",
+    // ✅ Safely follow up to user privately
+    await interaction.followUp({
+      content: "✅ Server reset complete! Check the new `📜│bot-commands` channel.",
       ephemeral: true,
     });
   } catch (err) {
