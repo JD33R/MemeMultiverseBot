@@ -3,37 +3,74 @@
     {
       "name": "👑 Meme Lord",
       "color": "#FFD700",
-      "permissions": 8
+      "permissions": [
+        "Administrator",
+        "ManageGuild",
+        "ManageRoles",
+        "ManageChannels",
+        "KickMembers",
+        "BanMembers"
+      ]
     },
     {
       "name": "🧱 Moderator",
       "color": "#FF4500",
-      "permissions": 268435456
+      "permissions": [
+        "ManageMessages",
+        "MuteMembers",
+        "KickMembers",
+        "ManageThreads"
+      ]
     },
     {
       "name": "🤖 The Overseer (Bot)",
       "color": "#00FFFF",
-      "permissions": 8
+      "permissions": [
+        "SendMessages",
+        "EmbedLinks",
+        "AttachFiles",
+        "ManageMessages",
+        "UseApplicationCommands"
+      ]
     },
     {
       "name": "🪖 Shitposter",
       "color": "#FF69B4",
-      "permissions": 0
+      "permissions": [
+        "SendMessages",
+        "AddReactions",
+        "AttachFiles",
+        "ReadMessageHistory"
+      ]
     },
     {
       "name": "🌈 Normie",
       "color": "#7289DA",
-      "permissions": 0
+      "permissions": [
+        "SendMessages",
+        "AddReactions",
+        "Connect",
+        "Speak",
+        "ReadMessageHistory"
+      ]
     },
     {
       "name": "🧑‍🎨 Template Alchemist",
       "color": "#32CD32",
-      "permissions": 0
+      "permissions": [
+        "SendMessages",
+        "AttachFiles",
+        "EmbedLinks"
+      ]
     },
     {
       "name": "🕵️ Meme Historian",
       "color": "#9932CC",
-      "permissions": 0
+      "permissions": [
+        "SendMessages",
+        "ReadMessageHistory",
+        "AddReactions"
+      ]
     }
   ],
   "categories": [
