@@ -243,61 +243,68 @@ client.on("interactionCreate", async (interaction) => {
     }
 
     // ===================================
-// 🔁 /reset-server (Final Safe Version)
+// 🔁 /reset-server (Safe version)
 // ===================================
 if (commandName === "reset-server") {
   try {
-    // Step 1: Acknowledge
-    if (!interaction.deferred && !interaction.replied) {
-      await interaction.deferReply({ ephemeral: true });
-    }
+    // Safely defer early
+    await ensureDeferred(interaction, { ephemeral: true });
+    await interaction.editReply("⚠️ Resetting the server...");
 
-    await interaction.editReply("⚠️ Resetting the server... please wait.");
+    const { guild } = interaction;
 
-    const guild = interaction.guild;
-
-    // Step 2: Create temp channel FIRST
-    const everyone = guild.roles.everyone;
+    // --- Step 1: Create a temporary safe channel before deleting ---
     const tempChannel = await guild.channels.create({
       name: "📜│bot-commands",
       type: 0, // text
     });
 
+    const everyone = guild.roles.everyone;
     await tempChannel.permissionOverwrites
       .create(everyone, { ViewChannel: false })
       .catch(() => {});
 
-    // Step 3: Delete all other channels EXCEPT the temp one
-    for (const [, ch] of guild.channels.cache) {
-      if (ch.id !== tempChannel.id) {
-        await ch.delete().catch(() => {});
+    await tempChannel.send("🌀 The reset is in progress... Please wait!");
+
+    // --- Step 2: Delete old channels except the one we just made ---
+    for (const [, channel] of guild.channels.cache) {
+      if (channel.id === tempChannel.id) continue; // skip the safe channel
+      try {
+        await channel.delete();
+      } catch (err) {
+        console.log(`Couldn't delete channel ${channel.name}: ${err.message}`);
       }
     }
 
-    // Step 4: Delete extra roles (keep @everyone)
-    for (const [, r] of guild.roles.cache) {
-      if (r.name !== "@everyone" && !r.managed) {
-        await r.delete().catch(() => {});
+    // --- Step 3: Delete roles safely ---
+    for (const [, role] of guild.roles.cache) {
+      if (role.name !== "@everyone" && !role.managed) {
+        try {
+          await role.delete();
+        } catch (err) {
+          console.log(`Couldn't delete role ${role.name}: ${err.message}`);
+        }
       }
     }
 
-    // Step 5: Announce completion safely inside the temp channel
+    // --- Step 4: Notify user via tempChannel ---
     await tempChannel.send(
-      "✅ **Server reset complete!**\n\nType `/setup-meme` here to rebuild The Meme Multiverse (Admins only)."
+      "✅ Server reset complete! Type `/setup-meme` here to rebuild the Meme Multiverse (admins only)."
     );
 
-    // Step 6: Safely edit the original deferred reply (no followUp)
-    await interaction.editReply(
-      "✅ Server reset complete! A new `📜│bot-commands` channel has been created."
-    );
-
-  } catch (err) {
-    console.error("Reset server error:", err);
-    const msg = `❌ Reset failed: ${err.message}`;
-    if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: msg, ephemeral: true }).catch(() => {});
-    } else {
-      await interaction.editReply(msg).catch(() => {});
+    // --- Step 5: Try editing interaction only if message still exists ---
+    try {
+      await interaction.editReply("✅ Reset complete! You can now rebuild the server.");
+    } catch {
+      console.log("Interaction reply no longer exists (expected during channel deletion).");
+    }
+  } catch (error) {
+    console.error("Reset server error:", error);
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.reply({
+        content: `❌ Reset failed: ${error.message}`,
+        ephemeral: true,
+      }).catch(() => {});
     }
   }
 }
