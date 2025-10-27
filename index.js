@@ -180,19 +180,59 @@ client.on("interactionCreate", async (interaction) => {
     // 🖱️ Verify Button
     // ===============================
     if (interaction.isButton() && interaction.customId === "verify_button") {
-      await ensureDeferred(interaction);
-      const guild = interaction.guild;
-      if (!guild) return interaction.editReply("❌ This button only works in a server.");
-
-      const member = await guild.members.fetch(interaction.user.id).catch(() => null);
-      if (!member) return interaction.editReply("❌ Could not find your member profile.");
-
-      const normieRole = guild.roles.cache.find(r => r.name === "🌈 Normie");
-      if (!normieRole) return interaction.editReply("⚠️ The **🌈 Normie** role doesn’t exist yet!");
-
-      await member.roles.add(normieRole).catch(console.error);
-      return interaction.editReply("✅ You’re verified! Welcome to the Meme Multiverse!");
+  try {
+    // ✅ Always ensure the interaction is deferred first
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.deferReply({ ephemeral: true });
     }
+
+    const guild = interaction.guild;
+    if (!guild) {
+      return interaction.followUp({
+        content: "❌ This button only works in a server.",
+        ephemeral: true,
+      });
+    }
+
+    const member = await guild.members.fetch(interaction.user.id).catch(() => null);
+    if (!member) {
+      return interaction.followUp({
+        content: "❌ Could not find your member profile.",
+        ephemeral: true,
+      });
+    }
+
+    const normieRole = guild.roles.cache.find(r => r.name === "🌈 Normie");
+    if (!normieRole) {
+      return interaction.followUp({
+        content: "⚠️ The **🌈 Normie** role doesn’t exist yet!",
+        ephemeral: true,
+      });
+    }
+
+    await member.roles.add(normieRole).catch(console.error);
+
+    return interaction.followUp({
+      content: "✅ You’re verified! Welcome to the Meme Multiverse!",
+      ephemeral: true,
+    });
+
+  } catch (err) {
+    console.error("Verify button error:", err);
+    // fallback to safe reply if needed
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.reply({
+        content: "❌ Something went wrong while verifying you. Try again later.",
+        ephemeral: true,
+      }).catch(() => {});
+    } else {
+      await interaction.followUp({
+        content: "❌ Something went wrong while verifying you. Try again later.",
+        ephemeral: true,
+      }).catch(() => {});
+    }
+  }
+}
 
     // 🧠 Ignore non-slash commands
     if (!interaction.isChatInputCommand()) return;
