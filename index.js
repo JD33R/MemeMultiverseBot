@@ -77,33 +77,62 @@ async function ensureDeferred(interaction, opts = { ephemeral: true }) {
 client.on("interactionCreate", async (interaction) => {
   try {
     // ===============================
-    // 🖱️ Verify Button
-    // ===============================
-    if (interaction.isButton() && interaction.customId === "verify_button") {
-      await ensureDeferred(interaction, { ephemeral: true });
-
-      const guild = interaction.guild;
-      if (!guild) return interaction.editReply("❌ This button only works in a server.");
-
-      const member = await guild.members.fetch(interaction.user.id).catch(() => null);
-      if (!member) return interaction.editReply("❌ Could not find your member profile.");
-
-      const normieRole = guild.roles.cache.find((r) => r.name === "🌈 Normie");
-      if (!normieRole) return interaction.editReply("⚠️ The **🌈 Normie** role doesn’t exist yet!");
-
-      await member.roles.add(normieRole).catch((e) => {
-        console.error("Add role error:", e);
-      });
-      return interaction.editReply("✅ You’re verified! Welcome to the Meme Multiverse!");
+// 🖱️ Verify Button (Fixed)
+// ===============================
+if (interaction.isButton() && interaction.customId === "verify_button") {
+  try {
+    // Safely defer if not already
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.deferReply({ ephemeral: true });
     }
 
-    // Ignore non-slash commands
-    if (!interaction.isChatInputCommand()) return;
-    const { commandName, guild } = interaction;
+    const guild = interaction.guild;
     if (!guild) {
-      await ensureDeferred(interaction, { ephemeral: true });
-      return interaction.editReply("❌ This command can only be used in a server.");
+      return await interaction.followUp({
+        content: "❌ This button only works inside a server.",
+        ephemeral: true,
+      });
     }
+
+    const member = await guild.members.fetch(interaction.user.id).catch(() => null);
+    if (!member) {
+      return await interaction.followUp({
+        content: "❌ Could not find your member profile.",
+        ephemeral: true,
+      });
+    }
+
+    const normieRole = guild.roles.cache.find(r => r.name === "🌈 Normie");
+    if (!normieRole) {
+      return await interaction.followUp({
+        content: "⚠️ The **🌈 Normie** role doesn’t exist yet! Please ask a moderator.",
+        ephemeral: true,
+      });
+    }
+
+    await member.roles.add(normieRole).catch((e) =>
+      console.error("Add role error:", e)
+    );
+
+    // ✅ Fresh ephemeral reply, avoids "Unknown Message"
+    await interaction.followUp({
+      content: "✅ You’re verified! Welcome to the Meme Multiverse!",
+      ephemeral: true,
+    });
+
+  } catch (err) {
+    console.error("Verify button error:", err);
+
+    // Graceful fallback
+    const message = "❌ Something went wrong while verifying you. Try again later!";
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({ content: message, ephemeral: true }).catch(() => {});
+    } else {
+      await interaction.followUp({ content: message, ephemeral: true }).catch(() => {});
+    }
+  }
+}
+
 
     // ===================================
     // 🔁 /reset-server
