@@ -3,6 +3,7 @@
 // ================================
 
 require("dotenv").config();
+
 const {
   Client,
   GatewayIntentBits,
@@ -12,7 +13,9 @@ const {
   ButtonBuilder,
   ButtonStyle,
   PermissionsBitField,
+  PermissionFlagsBits,
 } = require("discord.js");
+
 const fetch = require("node-fetch");
 const fs = require("fs");
 const path = require("path");
@@ -22,10 +25,24 @@ const Levels = require("discord-xp");
 // 🧱 Load Meme Server Template
 // ================================
 const templatePath = path.join(__dirname, "template.json");
-const template = JSON.parse(fs.readFileSync(templatePath, "utf8"));
+let template;
+try {
+  template = JSON.parse(fs.readFileSync(templatePath, "utf8"));
+} catch (e) {
+  console.error("Failed to read template.json. Make sure it exists and is valid JSON.");
+  template = { roles: [], categories: [] };
+}
 
-// ✅ Connect XP System
-Levels.setURL(process.env.MONGO_URI);
+// ✅ Connect XP System (MongoDB URI required)
+if (!process.env.MONGO_URI) {
+  console.warn("⚠️ MONGO_URI not set. XP system will fail to connect.");
+} else {
+  try {
+    Levels.setURL(process.env.MONGO_URI);
+  } catch (e) {
+    console.error("Failed to connect XP (Levels.setURL):", e.message);
+  }
+}
 
 // ✅ Create client with full intents
 const client = new Client({
@@ -47,6 +64,13 @@ client.once("ready", () => {
   console.log("🌍 The Meme Multiverse is now active!");
 });
 
+// Small helper to always acknowledge an interaction safely
+async function ensureDeferred(interaction, opts = { ephemeral: true }) {
+  if (interaction.deferred || interaction.replied) return;
+  // v14: use flags: 64 OR ephemeral: true (both supported now). We'll use ephemeral for readability.
+  await interaction.deferReply({ ephemeral: !!opts.ephemeral }).catch(() => {});
+}
+
 // ================================
 // 🎯 Interaction Handler
 // ================================
@@ -56,38 +80,49 @@ client.on("interactionCreate", async (interaction) => {
     // 🖱️ Verify Button
     // ===============================
     if (interaction.isButton() && interaction.customId === "verify_button") {
-      await interaction.deferReply({ flags: 64 });
+      await ensureDeferred(interaction, { ephemeral: true });
 
       const guild = interaction.guild;
-      const member = await guild.members.fetch(interaction.user.id);
-      const normieRole = guild.roles.cache.find(r => r.name === "🌈 Normie");
+      if (!guild) return interaction.editReply("❌ This button only works in a server.");
 
-      if (!normieRole)
-        return await interaction.editReply("⚠️ The Normie role doesn’t exist yet!");
+      const member = await guild.members.fetch(interaction.user.id).catch(() => null);
+      if (!member) return interaction.editReply("❌ Could not find your member profile.");
 
-      await member.roles.add(normieRole);
-      return await interaction.editReply("✅ You’re verified! Welcome to the Meme Multiverse!");
+      const normieRole = guild.roles.cache.find((r) => r.name === "🌈 Normie");
+      if (!normieRole) return interaction.editReply("⚠️ The **🌈 Normie** role doesn’t exist yet!");
+
+      await member.roles.add(normieRole).catch((e) => {
+        console.error("Add role error:", e);
+      });
+      return interaction.editReply("✅ You’re verified! Welcome to the Meme Multiverse!");
     }
 
     // Ignore non-slash commands
     if (!interaction.isChatInputCommand()) return;
     const { commandName, guild } = interaction;
+    if (!guild) {
+      await ensureDeferred(interaction, { ephemeral: true });
+      return interaction.editReply("❌ This command can only be used in a server.");
+    }
 
     // ===================================
     // 🔁 /reset-server
     // ===================================
     if (commandName === "reset-server") {
-      await interaction.reply({ content: "⚠️ Resetting the server...", flags: 64 });
+      await ensureDeferred(interaction, { ephemeral: true });
+      await interaction.editReply("⚠️ Resetting the server...");
 
-      for (const [id, channel] of guild.channels.cache) {
+      // Delete channels
+      for (const [, channel] of guild.channels.cache) {
         try {
           await channel.delete();
         } catch (err) {
-          console.log(`Couldn't delete ${channel.name}: ${err.message}`);
+          console.log(`Couldn't delete channel ${channel?.name || channel?.id}: ${err.message}`);
         }
       }
 
-      for (const [id, role] of guild.roles.cache) {
+      // Delete roles (except @everyone & managed)
+      for (const [, role] of guild.roles.cache) {
         if (role.name !== "@everyone" && !role.managed) {
           try {
             await role.delete();
@@ -97,14 +132,16 @@ client.on("interactionCreate", async (interaction) => {
         }
       }
 
+      // Create a temporary locked channel
       const everyoneRole = guild.roles.everyone;
       const tempChannel = await guild.channels.create({
         name: "📜│bot-commands",
         type: 0,
       });
 
-      await tempChannel.permissionOverwrites.create(everyoneRole, { ViewChannel: false });
-      await tempChannel.send("✅ Server reset complete! Type `/setup-meme` here to rebuild the server (admins only).");
+      await tempChannel.permissionOverwrites.create(everyoneRole, { ViewChannel: false }).catch(() => {});
+      await tempChannel.send("✅ Server reset complete! Type `/setup-meme` here to rebuild the server (admins only).").catch(() => {});
+      return interaction.followUp({ content: "✅ Reset done.", ephemeral: true }).catch(() => {});
     }
 
     // ===================================
@@ -112,102 +149,131 @@ client.on("interactionCreate", async (interaction) => {
     // ===================================
     if (commandName === "setup-meme") {
       try {
-        // ✅ Initial acknowledgement
-        if (!interaction.deferred && !interaction.replied) {
-          await interaction.reply({ content: "🌀 Setting up The Meme Multiverse...", flags: 64 });
-        }
+        await ensureDeferred(interaction, { ephemeral: true });
+        await interaction.editReply("🌀 Setting up The Meme Multiverse...");
 
-        // === Create Roles ===
-        for (const role of template.roles) {
-          const roleData = {
-            name: role.name,
-            permissions: new PermissionsBitField(BigInt(role.permissions) || 0n),
-            color: role.color || null,
-          };
-          await guild.roles.create(roleData).catch(err =>
-            console.log(`Role creation error for ${role.name}: ${err.message}`)
-          );
-        }
+        // --- Create or fetch core roles with safe permissions ---
+        const wantRoles = [
+          { name: "👑 Meme Lord", color: "#FFD700", perms: new PermissionsBitField(PermissionFlagsBits.Administrator) },
+          {
+            name: "🧱 Moderator",
+            color: "#FF4500",
+            perms: new PermissionsBitField(
+              PermissionFlagsBits.ManageChannels |
+                PermissionFlagsBits.KickMembers |
+                PermissionFlagsBits.BanMembers |
+                PermissionFlagsBits.ManageMessages |
+                PermissionFlagsBits.ManageRoles |
+                PermissionFlagsBits.ViewAuditLog
+            ),
+          },
+          { name: "🤖 The Overseer (Bot)", color: "#00FFFF", perms: new PermissionsBitField(PermissionFlagsBits.ManageGuild) },
+          { name: "🪖 Shitposter", color: "#FF69B4", perms: new PermissionsBitField(0) },
+          { name: "🌈 Normie", color: "#7289DA", perms: new PermissionsBitField(0) },
+          { name: "🧑‍🎨 Template Alchemist", color: "#32CD32", perms: new PermissionsBitField(0) },
+          { name: "🕵️ Meme Historian", color: "#9932CC", perms: new PermissionsBitField(0) },
+        ];
 
-        // === Create Categories & Channels ===
-        for (const category of template.categories) {
-          const cat = await guild.channels.create({
-            name: category.name,
-            type: 4,
-          });
-
-          const everyone = guild.roles.everyone;
-          const normie = guild.roles.cache.find(r => r.name === "🌈 Normie");
-          const mod = guild.roles.cache.find(r => r.name === "🧱 Moderator");
-          const lord = guild.roles.cache.find(r => r.name === "👑 Meme Lord");
-          const bot = guild.roles.cache.find(r => r.name === "🤖 The Overseer (Bot)");
-
-          if (category.name.includes("STAFF AREA")) {
-            await cat.permissionOverwrites.create(everyone, { ViewChannel: false });
-            if (lord) await cat.permissionOverwrites.create(lord, { ViewChannel: true });
-            if (mod) await cat.permissionOverwrites.create(mod, { ViewChannel: true });
-            if (bot) await cat.permissionOverwrites.create(bot, { ViewChannel: true });
-          } else {
-            await cat.permissionOverwrites.create(everyone, { ViewChannel: false });
-            if (normie) await cat.permissionOverwrites.create(normie, { ViewChannel: true });
-          }
-
-          // Create channels
-          for (const channel of category.channels) {
-            const ch = await guild.channels.create({
-              name: channel.name,
-              type: channel.type === "voice" ? 2 : 0,
-              parent: cat.id,
-            });
-
-            if (!category.name.includes("STAFF AREA")) {
-              await ch.permissionOverwrites.create(everyone, { ViewChannel: false });
-              if (normie) await ch.permissionOverwrites.create(normie, { ViewChannel: true });
+        for (const r of wantRoles) {
+          let existing = guild.roles.cache.find((x) => x.name === r.name);
+          if (!existing) {
+            try {
+              existing = await guild.roles.create({
+                name: r.name,
+                color: r.color,
+                permissions: r.perms,
+              });
+            } catch (e) {
+              console.log(`Role create error (${r.name}): ${e.message}`);
             }
           }
         }
 
-        // === Create Verify Channel ===
+        // Refresh role refs
+        const everyone = guild.roles.everyone;
+        const normie = guild.roles.cache.find((r) => r.name === "🌈 Normie");
+        const mod = guild.roles.cache.find((r) => r.name === "🧱 Moderator");
+        const lord = guild.roles.cache.find((r) => r.name === "👑 Meme Lord");
+        const botRole = guild.roles.cache.find((r) => r.name === "🤖 The Overseer (Bot)");
+
+        // --- Create categories & channels from template ---
+        for (const category of template.categories || []) {
+          let cat;
+          try {
+            cat = await guild.channels.create({
+              name: category.name,
+              type: 4,
+            });
+          } catch (e) {
+            console.log(`Category create error (${category.name}): ${e.message}`);
+            continue;
+          }
+
+          // Permissions per category
+          if (category.name.includes("STAFF AREA")) {
+            await cat.permissionOverwrites.create(everyone, { ViewChannel: false }).catch(() => {});
+            if (lord) await cat.permissionOverwrites.create(lord, { ViewChannel: true }).catch(() => {});
+            if (mod) await cat.permissionOverwrites.create(mod, { ViewChannel: true }).catch(() => {});
+            if (botRole) await cat.permissionOverwrites.create(botRole, { ViewChannel: true }).catch(() => {});
+          } else {
+            await cat.permissionOverwrites.create(everyone, { ViewChannel: false }).catch(() => {});
+            if (normie) await cat.permissionOverwrites.create(normie, { ViewChannel: true }).catch(() => {});
+          }
+
+          for (const ch of category.channels || []) {
+            let newCh;
+            try {
+              newCh = await guild.channels.create({
+                name: ch.name,
+                type: ch.type === "voice" ? 2 : 0,
+                parent: cat.id,
+              });
+            } catch (e) {
+              console.log(`Channel create error (${ch.name}): ${e.message}`);
+              continue;
+            }
+
+            if (!category.name.includes("STAFF AREA")) {
+              await newCh.permissionOverwrites.create(everyone, { ViewChannel: false }).catch(() => {});
+              if (normie) await newCh.permissionOverwrites.create(normie, { ViewChannel: true }).catch(() => {});
+            }
+          }
+        }
+
+        // === Create Verify Channel (visible to everyone for onboarding) ===
         const verifyChannel = await guild.channels.create({
           name: "✅│verify-here",
           type: 0,
         });
 
-        const everyoneRole = guild.roles.everyone;
-        await verifyChannel.permissionOverwrites.create(everyoneRole, {
+        await verifyChannel.permissionOverwrites.create(everyone, {
           ViewChannel: true,
           SendMessages: true,
           ReadMessageHistory: true,
-        });
+        }).catch(() => {});
 
         const row = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId("verify_button")
-            .setLabel("✅ Verify")
-            .setStyle(ButtonStyle.Success)
+          new ButtonBuilder().setCustomId("verify_button").setLabel("✅ Verify").setStyle(ButtonStyle.Success)
         );
 
-        await verifyChannel.send({
-          content: "👋 Welcome! Click the **Verify** button below to unlock the rest of the Meme Multiverse!",
-          components: [row],
-        });
+        await verifyChannel
+          .send({
+            content: "👋 Welcome! Click the **Verify** button below to unlock the rest of the Meme Multiverse!",
+            components: [row],
+          })
+          .catch(() => {});
 
-        // 🧹 Cleanup
-        const oldBotChannel = guild.channels.cache.find(ch => ch.name === "📜│bot-commands");
+        // 🧹 Cleanup old temp channel
+        const oldBotChannel = guild.channels.cache.find((ch) => ch.name === "📜│bot-commands");
         if (oldBotChannel) await oldBotChannel.delete().catch(() => {});
 
-        await interaction.followUp({
-          content: "🎉 Setup complete! New members will only see the verify channel until they verify.",
-          flags: 64,
-        });
-
+        return interaction.editReply("🎉 Setup complete! New members will only see **verify** until they verify.");
       } catch (error) {
         console.error("Setup error:", error);
-        if (!interaction.replied && !interaction.deferred) {
-          await interaction.reply({ content: `❌ Setup failed: ${error.message}`, flags: 64 });
-        } else {
-          await interaction.followUp({ content: `❌ Setup failed: ${error.message}`, flags: 64 });
+        if (!interaction.deferred && !interaction.replied) {
+          return interaction.reply({ content: `❌ Setup failed: ${error.message}`, ephemeral: true }).catch(() => {});
         }
+        return interaction.editReply(`❌ Setup failed: ${error.message}`).catch(() => {});
       }
     }
 
@@ -215,67 +281,70 @@ client.on("interactionCreate", async (interaction) => {
     // 🧠 /verify (manual)
     // ===================================
     if (commandName === "verify") {
-      const member = await guild.members.fetch(interaction.user.id);
-      const role = guild.roles.cache.find(r => r.name === "🌈 Normie");
-      if (!role) return await interaction.reply({ content: "⚠️ The Normie role doesn’t exist yet!", flags: 64 });
-      await member.roles.add(role);
-      await interaction.reply({ content: "✅ You’re verified! Welcome!", flags: 64 });
+      await ensureDeferred(interaction, { ephemeral: true });
+
+      const member = await guild.members.fetch(interaction.user.id).catch(() => null);
+      if (!member) return interaction.editReply("❌ Could not find your member profile.");
+
+      const role = guild.roles.cache.find((r) => r.name === "🌈 Normie");
+      if (!role) return interaction.editReply("⚠️ The **🌈 Normie** role doesn’t exist yet!");
+
+      await member.roles.add(role).catch((e) => console.log("Add role error:", e.message));
+      return interaction.editReply("✅ You’re verified! Welcome!");
     }
 
- // ===================================
-// 😂 /meme (Fixed)
-// ===================================
-if (commandName === "meme") {
-  try {
-    // Acknowledge the command immediately (avoids Unknown Interaction)
-    await interaction.deferReply();
+    // ===================================
+    // 😂 /meme
+    // ===================================
+    if (commandName === "meme") {
+      try {
+        await ensureDeferred(interaction, { ephemeral: false });
 
-    // Fetch meme data
-    const res = await fetch("https://meme-api.com/gimme");
-    const data = await res.json();
+        const res = await fetch("https://meme-api.com/gimme");
+        const data = await res.json().catch(() => null);
 
-    if (!data || !data.url) {
-      return await interaction.editReply("❌ Couldn't fetch a meme right now. Try again later!");
+        if (!data || !data.url) {
+          return interaction.editReply("❌ Couldn't fetch a meme right now. Try again later!");
+        }
+
+        const embed = new EmbedBuilder()
+          .setTitle(data.title || "Random Meme 😂")
+          .setImage(data.url)
+          .setFooter({ text: `👍 ${data.ups || 0} | r/${data.subreddit || "unknown"}` })
+          .setColor("Random");
+
+        return interaction.editReply({ embeds: [embed] });
+      } catch (err) {
+        console.error("Meme command error:", err);
+        if (!interaction.deferred && !interaction.replied) {
+          return interaction.reply({ content: "❌ Failed to fetch meme. Try again later!", ephemeral: true }).catch(() => {});
+        }
+        return interaction.editReply("❌ Failed to fetch meme. Try again later!").catch(() => {});
+      }
     }
-
-    // Build embed
-    const embed = new EmbedBuilder()
-      .setTitle(data.title || "Random Meme 😂")
-      .setImage(data.url)
-      .setFooter({ text: `👍 ${data.ups || 0} | r/${data.subreddit || "unknown"}` })
-      .setColor("Random");
-
-    // Send meme
-    await interaction.editReply({ embeds: [embed] });
-
-  } catch (err) {
-    console.error("Meme command error:", err);
-
-    // Fallback if interaction already acknowledged or errored
-    if (!interaction.replied) {
-      await interaction.reply({ content: "❌ Failed to fetch meme. Try again later!", ephemeral: true }).catch(() => {});
-    } else {
-      await interaction.editReply("❌ Failed to fetch meme. Try again later!");
-    }
-  }
-}
-
 
     // ===================================
     // 🧩 /rank
     // ===================================
     if (commandName === "rank") {
-      await interaction.reply({ content: "Checking your rank...", flags: 64 });
-      const user = await Levels.fetch(interaction.user.id, guild.id, true);
-      if (!user) return await interaction.followUp({ content: "❌ You don’t have any XP yet!", flags: 64 });
-      const nextLevelXP = Levels.xpFor(user.level + 1);
+      await ensureDeferred(interaction, { ephemeral: true });
 
+      let user;
+      try {
+        user = await Levels.fetch(interaction.user.id, guild.id, true);
+      } catch (e) {
+        console.error("Levels.fetch error:", e.message);
+      }
+
+      if (!user) return interaction.editReply("❌ You don’t have any XP yet!");
+
+      const nextLevelXP = Levels.xpFor(user.level + 1);
       const embed = new EmbedBuilder()
         .setTitle(`${interaction.user.username}'s Rank`)
         .setDescription(`**Level:** ${user.level}\n**XP:** ${user.xp} / ${nextLevelXP}`)
         .setColor("Blue");
 
-      await interaction.followUp({ embeds: [embed], flags: 64 });
+      return interaction.editReply({ embeds: [embed] });
     }
   } catch (err) {
     console.error("Interaction error:", err);
@@ -286,16 +355,24 @@ if (commandName === "meme") {
 // 📈 XP System
 // ================================
 client.on("messageCreate", async (message) => {
-  if (message.author.bot || !message.guild) return;
-  const randomXP = Math.floor(Math.random() * 10) + 5;
-  const leveledUp = await Levels.appendXp(message.author.id, message.guild.id, randomXP);
-  if (leveledUp) {
-    const user = await Levels.fetch(message.author.id, message.guild.id);
-    message.channel.send(`🎉 ${message.author}, you leveled up to **Level ${user.level}**!`);
+  try {
+    if (message.author.bot || !message.guild) return;
+    const randomXP = Math.floor(Math.random() * 10) + 5;
+    const leveledUp = await Levels.appendXp(message.author.id, message.guild.id, randomXP);
+    if (leveledUp) {
+      const user = await Levels.fetch(message.author.id, message.guild.id);
+      message.channel.send(`🎉 ${message.author}, you leveled up to **Level ${user.level}**!`).catch(() => {});
+    }
+  } catch (e) {
+    console.error("XP handler error:", e.message);
   }
 });
 
 // ================================
 // 🔑 Login
 // ================================
+if (!process.env.BOT_TOKEN) {
+  console.error("❌ BOT_TOKEN is missing! Set it in your environment.");
+  process.exit(1);
+}
 client.login(process.env.BOT_TOKEN);
