@@ -222,35 +222,44 @@ client.on("interactionCreate", async (interaction) => {
       await interaction.reply({ content: "✅ You’re verified! Welcome!", flags: 64 });
     }
 
-    // ===================================
-// 😂 /meme
+ // ===================================
+// 😂 /meme (Fixed)
 // ===================================
 if (commandName === "meme") {
   try {
-    // Immediately acknowledge the command to avoid "Unknown interaction"
+    // Acknowledge the command immediately (avoids Unknown Interaction)
     await interaction.deferReply();
 
     // Fetch meme data
     const res = await fetch("https://meme-api.com/gimme");
     const data = await res.json();
 
-    // Build the embed
+    if (!data || !data.url) {
+      return await interaction.editReply("❌ Couldn't fetch a meme right now. Try again later!");
+    }
+
+    // Build embed
     const embed = new EmbedBuilder()
       .setTitle(data.title || "Random Meme 😂")
       .setImage(data.url)
       .setFooter({ text: `👍 ${data.ups || 0} | r/${data.subreddit || "unknown"}` })
       .setColor("Random");
 
-    // Send meme after deferral
+    // Send meme
     await interaction.editReply({ embeds: [embed] });
 
   } catch (err) {
     console.error("Meme command error:", err);
+
+    // Fallback if interaction already acknowledged or errored
     if (!interaction.replied) {
-      await interaction.reply({ content: "❌ Failed to fetch meme. Try again later!" });
+      await interaction.reply({ content: "❌ Failed to fetch meme. Try again later!", ephemeral: true }).catch(() => {});
+    } else {
+      await interaction.editReply("❌ Failed to fetch meme. Try again later!");
     }
   }
 }
+
 
     // ===================================
     // 🧩 /rank
