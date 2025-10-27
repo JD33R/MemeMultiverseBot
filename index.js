@@ -38,7 +38,7 @@ const client = new Client({
 // ================================
 // 🚀 Bot Ready
 // ================================
-client.once("ready", () => {
+client.once("clientReady", () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
   console.log("🌍 The Meme Multiverse is now active!");
 });
