@@ -102,8 +102,14 @@ client.on("interactionCreate", async (interaction) => {
     // 🧱 /setup-meme
     // ===================================
     if (commandName === "setup-meme") {
-      await interaction.deferReply({ ephemeral: true });
-      await interaction.editReply("🌀 Setting up The Meme Multiverse...");
+      try {
+  if (interaction.deferred || interaction.replied) {
+    console.log("Interaction already acknowledged.");
+  } else {
+    await interaction.deferReply({ flags: 64 }); // "ephemeral" replacement
+  }
+
+  await interaction.followUp({ content: "🌀 Setting up The Meme Multiverse..." });
 
       const template = JSON.parse(fs.readFileSync("template.json", "utf8"));
 
@@ -179,7 +185,11 @@ client.on("interactionCreate", async (interaction) => {
         components: [row],
       });
 
-      await interaction.editReply("🎉 Setup complete! Only verified users can see channels now.");
+      if (!interaction.replied) {
+  await interaction.followUp({ content: "🎉 Setup complete! Only new members will see the verify channel until they verify." });
+} else {
+  await interaction.editReply({ content: "🎉 Setup complete! Only new members will see the verify channel until they verify." });
+}
     }
 
     // ===================================
