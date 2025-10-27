@@ -17,6 +17,9 @@ const fetch = require("node-fetch");
 const fs = require("fs");
 const Levels = require("discord-xp");
 
+// Load meme server structure
+const template = JSON.parse(fs.readFileSync("template.json", "utf8"));
+
 // ✅ Connect XP System
 Levels.setURL(process.env.MONGO_URI);
 
