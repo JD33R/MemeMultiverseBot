@@ -102,10 +102,9 @@
       "channels": [
         { "name": "📢│announcements", "type": "text" },
         { "name": "🎉│introductions", "type": "text" },
-        { "name": "🧭│server-guide", "type": "text" },
+        { "name": "🧭│server-guide", "type": "text" }
       ]
     },
-
     {
       "name": "😂 MEME HQ",
       "channels": [
@@ -116,7 +115,6 @@
         { "name": "🎙️│voice-of-chaos", "type": "voice" }
       ]
     },
-
     {
       "name": "🕹️ MEME GAMES & FUN",
       "channels": [
@@ -126,7 +124,6 @@
         { "name": "🎰│daily-streak", "type": "text" }
       ]
     },
-
     {
       "name": "📈 LEVEL-UP ZONE",
       "channels": [
@@ -135,7 +132,6 @@
         { "name": "🎯│leaderboard", "type": "text" }
       ]
     },
-
     {
       "name": "🎨 CREATOR'S LAB",
       "channels": [
@@ -146,7 +142,6 @@
         { "name": "🎙️│creator-lounge", "type": "voice" }
       ]
     },
-
     {
       "name": "🎭 COMMUNITY LOUNGE",
       "channels": [
@@ -156,7 +151,6 @@
         { "name": "🐸│meme-themes", "type": "text" }
       ]
     },
-
     {
       "name": "🏆 EVENTS & CONTESTS",
       "channels": [
@@ -165,7 +159,6 @@
         { "name": "🎤│contest-lounge", "type": "voice" }
       ]
     },
-
     {
       "name": "🏛️ STAFF AREA",
       "channels": [
