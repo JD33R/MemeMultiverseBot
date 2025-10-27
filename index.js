@@ -21,10 +21,31 @@ const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildBans,
+    GatewayIntentBits.GuildEmojisAndStickers,
+    GatewayIntentBits.GuildIntegrations,
+    GatewayIntentBits.GuildWebhooks,
+    GatewayIntentBits.GuildInvites,
+    GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.GuildPresences,
     GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMessageReactions,
+    GatewayIntentBits.GuildMessageTyping,
+    GatewayIntentBits.DirectMessages,
+    GatewayIntentBits.DirectMessageReactions,
+    GatewayIntentBits.DirectMessageTyping,
     GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildScheduledEvents,
+    GatewayIntentBits.AutoModerationConfiguration,
+    GatewayIntentBits.AutoModerationExecution,
   ],
-  partials: [Partials.Channel, Partials.GuildMember],
+  partials: [
+    Partials.Channel,
+    Partials.Message,
+    Partials.Reaction,
+    Partials.GuildMember,
+    Partials.User,
+  ],
 });
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
