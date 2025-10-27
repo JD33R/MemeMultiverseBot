@@ -1,94 +1,81 @@
 {
   "roles": [
-    {"name": "👑 Meme Lord", "color": 16766720},
-    {"name": "🧱 Moderator", "color": 3066993},
-    {"name": "🤖 The Overseer (Bot)", "color": 10070709},
-    {"name": "🪖 Shitposter", "color": 13632027},
-    {"name": "🌈 Normie", "color": 15158332},
-    {"name": "🧑‍🎨 Template Alchemist", "color": 3447003},
-    {"name": "🕵️ Meme Historian", "color": 9807270}
+    {
+      "name": "👑 Meme Lord",
+      "color": "#FFD700",
+      "permissions": 8
+    },
+    {
+      "name": "🧱 Moderator",
+      "color": "#FF4500",
+      "permissions": 268435456
+    },
+    {
+      "name": "🤖 The Overseer (Bot)",
+      "color": "#00FFFF",
+      "permissions": 8
+    },
+    {
+      "name": "🪖 Shitposter",
+      "color": "#FF69B4",
+      "permissions": 0
+    },
+    {
+      "name": "🌈 Normie",
+      "color": "#7289DA",
+      "permissions": 0
+    },
+    {
+      "name": "🧑‍🎨 Template Alchemist",
+      "color": "#32CD32",
+      "permissions": 0
+    },
+    {
+      "name": "🕵️ Meme Historian",
+      "color": "#9932CC",
+      "permissions": 0
+    }
   ],
   "categories": [
     {
-      "name": "🌍 THE HUB",
-      "permissions": {
-        "@everyone": {"VIEW_CHANNEL": true, "SEND_MESSAGES": true},
-        "👑 Meme Lord": {"MANAGE_MESSAGES": true, "PIN_MESSAGES": true},
-        "🧱 Moderator": {"MANAGE_MESSAGES": true, "KICK_MEMBERS": true, "BAN_MEMBERS": true}
-      },
+      "name": "✅ WELCOME ZONE",
       "channels": [
-        {"name": "📜│welcome", "type": "text"},
-        {"name": "⚖️│rules", "type": "text"},
-        {"name": "💎│roles", "type": "text"},
-        {"name": "📢│announcements", "type": "text"},
-        {"name": "💬│meme-plaza", "type": "text"}
+        { "name": "✅│verify-here", "type": "text" },
+        { "name": "📢│announcements", "type": "text" },
+        { "name": "🎉│introductions", "type": "text" }
       ]
     },
     {
-      "name": "🌀 MEME DIMENSIONS",
-      "permissions": {
-        "@everyone": {"VIEW_CHANNEL": true, "SEND_MESSAGES": true, "ATTACH_FILES": true},
-        "🧱 Moderator": {"MANAGE_MESSAGES": true}
-      },
+      "name": "😂 MEME HQ",
       "channels": [
-        {"name": "💀│void-of-dankness", "type": "text"},
-        {"name": "😂│earth-420", "type": "text"},
-        {"name": "💖│wholesome-verse", "type": "text"},
-        {"name": "🤖│ai-meme-lab", "type": "text"},
-        {"name": "📸│meme-templates", "type": "text"}
+        { "name": "🤣│general-memes", "type": "text", "autoReactions": ["😂", "🔥", "💀"] },
+        { "name": "📸│fresh-dankness", "type": "text", "autoReactions": ["🤣", "🚀", "💯"] },
+        { "name": "💬│meme-chat", "type": "text" },
+        { "name": "🎙️│voice-of-chaos", "type": "voice" }
       ]
     },
     {
-      "name": "⚔️ MEME BATTLES",
-      "permissions": {
-        "@everyone": {"VIEW_CHANNEL": true, "SEND_MESSAGES": false, "ADD_REACTIONS": true},
-        "👑 Meme Lord": {"SEND_MESSAGES": true},
-        "🧱 Moderator": {"SEND_MESSAGES": true}
-      },
+      "name": "📈 LEVEL-UP ZONE",
       "channels": [
-        {"name": "🔥│battle-arena", "type": "text"},
-        {"name": "🗳️│battle-voting", "type": "text"},
-        {"name": "🏆│battle-results", "type": "text"}
+        { "name": "🏆│rank-showcase", "type": "text" },
+        { "name": "⚔️│xp-battleground", "type": "text" }
       ]
     },
     {
-      "name": "🧠 COMMUNITY ZONE",
-      "permissions": {
-        "@everyone": {"VIEW_CHANNEL": true, "SEND_MESSAGES": true},
-        "🧱 Moderator": {"MANAGE_MESSAGES": true}
-      },
+      "name": "🎨 CREATOR'S LAB",
       "channels": [
-        {"name": "💭│daily-prompts", "type": "text"},
-        {"name": "📢│meme-news", "type": "text"},
-        {"name": "📚│meme-academy", "type": "text"},
-        {"name": "🎙️│meme-lounge", "type": "voice"},
-        {"name": "🌀│cursed-vc", "type": "voice"}
-      ]
-    },
-    {
-      "name": "🤖 BOT COMMANDS",
-      "permissions": {
-        "@everyone": {"VIEW_CHANNEL": false, "SEND_MESSAGES": false},
-        "🤖 The Overseer (Bot)": {"SEND_MESSAGES": true, "VIEW_CHANNEL": true},
-        "🧱 Moderator": {"SEND_MESSAGES": true, "VIEW_CHANNEL": true}
-      },
-      "channels": [
-        {"name": "💻│bot-spam", "type": "text"},
-        {"name": "📊│level-up-log", "type": "text"}
+        { "name": "🧠│meme-ideas", "type": "text" },
+        { "name": "🖌️│design-your-dank", "type": "text" },
+        { "name": "🎥│video-edits", "type": "text" }
       ]
     },
     {
       "name": "🏛️ STAFF AREA",
-      "permissions": {
-        "@everyone": {"VIEW_CHANNEL": false, "SEND_MESSAGES": false},
-        "👑 Meme Lord": {"VIEW_CHANNEL": true, "SEND_MESSAGES": true, "MANAGE_CHANNELS": true, "BAN_MEMBERS": true},
-        "🧱 Moderator": {"VIEW_CHANNEL": true, "SEND_MESSAGES": true, "MANAGE_MESSAGES": true},
-        "🤖 The Overseer (Bot)": {"VIEW_CHANNEL": true, "SEND_MESSAGES": true}
-      },
       "channels": [
-        {"name": "🔒│mod-chat", "type": "text"},
-        {"name": "🔒│report-log", "type": "text"},
-        {"name": "🔒│server-updates", "type": "text"}
+        { "name": "🗂️│mod-logs", "type": "text" },
+        { "name": "🔧│staff-chat", "type": "text" },
+        { "name": "🕵️│incident-reports", "type": "text" },
+        { "name": "🎙️│staff-meeting-room", "type": "voice" }
       ]
     }
   ]
