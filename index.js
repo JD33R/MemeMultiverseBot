@@ -243,24 +243,69 @@ client.on("interactionCreate", async (interaction) => {
     }
 
     // ===================================
-    // 🔁 /reset-server
-    // ===================================
-    if (commandName === "reset-server") {
-      await ensureDeferred(interaction);
-      await interaction.editReply("⚠️ Resetting the server...");
-
-      for (const [, ch] of guild.channels.cache) {
-        await ch.delete().catch(() => {});
-      }
-      for (const [, r] of guild.roles.cache) {
-        if (r.name !== "@everyone" && !r.managed) await r.delete().catch(() => {});
-      }
-
-      const temp = await guild.channels.create({ name: "📜│bot-commands", type: 0 });
-      await temp.permissionOverwrites.create(guild.roles.everyone, { ViewChannel: false });
-      await temp.send("✅ Server reset complete! Use `/setup-meme` to rebuild.");
-      return interaction.followUp({ content: "✅ Reset done.", ephemeral: true });
+// 🔁 /reset-server (Fixed)
+// ===================================
+if (commandName === "reset-server") {
+  try {
+    // ✅ Always defer before doing anything
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.deferReply({ ephemeral: true });
     }
+
+    await interaction.editReply("⚠️ Resetting the server... This might take a few seconds.");
+
+    // --- Delete all channels ---
+    for (const [, channel] of guild.channels.cache) {
+      try {
+        await channel.delete();
+      } catch (err) {
+        console.log(`Couldn't delete channel ${channel?.name || channel?.id}: ${err.message}`);
+      }
+    }
+
+    // --- Delete all roles except @everyone & managed ones ---
+    for (const [, role] of guild.roles.cache) {
+      if (role.name !== "@everyone" && !role.managed) {
+        try {
+          await role.delete();
+        } catch (err) {
+          console.log(`Couldn't delete role ${role.name}: ${err.message}`);
+        }
+      }
+    }
+
+    // --- Create a temporary locked channel for bot commands ---
+    const everyoneRole = guild.roles.everyone;
+    const tempChannel = await guild.channels.create({
+      name: "📜│bot-commands",
+      type: 0, // Text channel
+    });
+
+    await tempChannel.permissionOverwrites.create(everyoneRole, { ViewChannel: false }).catch(() => {});
+    await tempChannel
+      .send("✅ Server reset complete! Type `/setup-meme` here to rebuild the server (admins only).")
+      .catch(() => {});
+
+    // ✅ Use followUp after deferral to confirm completion
+    return interaction.followUp({
+      content: "✅ Reset complete! A temporary bot-commands channel has been created.",
+      ephemeral: true,
+    });
+  } catch (err) {
+    console.error("Reset server error:", err);
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.reply({
+        content: `❌ Server reset failed: ${err.message}`,
+        ephemeral: true,
+      }).catch(() => {});
+    } else {
+      await interaction.followUp({
+        content: `❌ Server reset failed: ${err.message}`,
+        ephemeral: true,
+      }).catch(() => {});
+    }
+  }
+}
 
     // ===================================
 // 🧱 /setup-meme
