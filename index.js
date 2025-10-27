@@ -153,26 +153,42 @@ client.on("interactionCreate", async (interaction) => {
         await interaction.editReply("🌀 Setting up The Meme Multiverse...");
 
         // --- Create or fetch core roles with safe permissions ---
-        const wantRoles = [
-          { name: "👑 Meme Lord", color: "#FFD700", perms: new PermissionsBitField(PermissionFlagsBits.Administrator) },
-          {
-            name: "🧱 Moderator",
-            color: "#FF4500",
-            perms: new PermissionsBitField(
-              PermissionFlagsBits.ManageChannels |
-                PermissionFlagsBits.KickMembers |
-                PermissionFlagsBits.BanMembers |
-                PermissionFlagsBits.ManageMessages |
-                PermissionFlagsBits.ManageRoles |
-                PermissionFlagsBits.ViewAuditLog
-            ),
-          },
-          { name: "🤖 The Overseer (Bot)", color: "#00FFFF", perms: new PermissionsBitField(PermissionFlagsBits.ManageGuild) },
-          { name: "🪖 Shitposter", color: "#FF69B4", perms: new PermissionsBitField(0) },
-          { name: "🌈 Normie", color: "#7289DA", perms: new PermissionsBitField(0) },
-          { name: "🧑‍🎨 Template Alchemist", color: "#32CD32", perms: new PermissionsBitField(0) },
-          { name: "🕵️ Meme Historian", color: "#9932CC", perms: new PermissionsBitField(0) },
-        ];
+       const wantRoles = [
+  { name: "👑 Meme Lord", color: "#FFD700", perms: [PermissionFlagsBits.Administrator] },
+  {
+    name: "🧱 Moderator",
+    color: "#FF4500",
+    perms: [
+      PermissionFlagsBits.ManageChannels,
+      PermissionFlagsBits.KickMembers,
+      PermissionFlagsBits.BanMembers,
+      PermissionFlagsBits.ManageMessages,
+      PermissionFlagsBits.ManageRoles,
+      PermissionFlagsBits.ViewAuditLog,
+    ],
+  },
+  { name: "🤖 The Overseer (Bot)", color: "#00FFFF", perms: [PermissionFlagsBits.ManageGuild] },
+  { name: "🪖 Shitposter", color: "#FF69B4", perms: [] },
+  { name: "🌈 Normie", color: "#7289DA", perms: [] },
+  { name: "🧑‍🎨 Template Alchemist", color: "#32CD32", perms: [] },
+  { name: "🕵️ Meme Historian", color: "#9932CC", perms: [] },
+];
+
+for (const r of wantRoles) {
+  let existing = guild.roles.cache.find((x) => x.name === r.name);
+  if (!existing) {
+    try {
+      existing = await guild.roles.create({
+        name: r.name,
+        color: r.color,
+        permissions: r.perms, // <— now an array, not a bitfield
+      });
+    } catch (e) {
+      console.log(`Role create error (${r.name}): ${e.message}`);
+    }
+  }
+}
+
 
         for (const r of wantRoles) {
           let existing = guild.roles.cache.find((x) => x.name === r.name);
