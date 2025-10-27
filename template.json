@@ -77,7 +77,6 @@
     {
       "name": "✅ WELCOME ZONE",
       "channels": [
-        { "name": "✅│verify-here", "type": "text" },
         { "name": "📢│announcements", "type": "text" },
         { "name": "🎉│introductions", "type": "text" }
       ]
