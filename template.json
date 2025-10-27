@@ -103,7 +103,6 @@
         { "name": "📢│announcements", "type": "text" },
         { "name": "🎉│introductions", "type": "text" },
         { "name": "🧭│server-guide", "type": "text" },
-        { "name": "✅│verify-here", "type": "text" }
       ]
     },
 
