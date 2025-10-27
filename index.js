@@ -103,11 +103,14 @@ await tempChannel.send("✅ Server reset complete! Type `/setup-meme` here to re
   // ===================================
   // 🧱 /setup-meme
   // ===================================
-  if (commandName === "setup-meme") {
+   if (commandName === "setup-meme") {
   try {
-    await interaction.reply("🌀 Setting up The Meme Multiverse...");
+    // Let Discord know the bot is processing
+    await interaction.deferReply({ ephemeral: true });
 
-    // Create roles
+    await interaction.followUp("🌀 Setting up The Meme Multiverse...");
+
+  // Create roles
     for (const role of template.roles) {
       const roleData = {
         name: role.name,
@@ -190,7 +193,6 @@ await tempChannel.send("✅ Server reset complete! Type `/setup-meme` here to re
     await interaction.followUp(`❌ Setup failed: ${error.message}`);
   }
 }
-
 
   // ===================================
   // 🧠 /verify (manual fallback)
