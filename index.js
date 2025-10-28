@@ -929,6 +929,10 @@ client.once("ready", async () => {
         name: "help",
         description: "📘 Shows the command and feature guide for the Meme Multiverse.",
       },
+{
+  name: "update-server",
+  description: "🔄 Syncs new roles, channels, and categories from the template without resetting anything.",
+},
     ];
 
     // If you want this to work in one specific server (recommended for testing):
