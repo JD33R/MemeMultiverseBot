@@ -738,15 +738,15 @@ if (commandName === "help") {
 }
 
 // ===================================
-// 🔄 /update-server — Safe Sync + Reaction Roles
+// 🔄 /update-server — Safe Sync + Reaction Roles + Server Guide
 // ===================================
 if (commandName === "update-server") {
   const { guild } = interaction;
   try {
     await ensureDeferred(interaction, { ephemeral: true });
-    await interaction.editReply("🔄 Checking for new roles, channels, and categories...").catch(() => {});
+    await interaction.editReply("🔄 Checking for new roles, channels, and guides...").catch(() => {});
 
-    // --- Create missing roles ---
+    // --- ✅ Create missing roles ---
     if (template.roles && Array.isArray(template.roles)) {
       for (const r of template.roles) {
         if (!guild.roles.cache.find(x => x.name === r.name)) {
@@ -759,12 +759,10 @@ if (commandName === "update-server") {
       }
     }
 
-    // --- Create missing categories and channels ---
+    // --- ✅ Create missing categories & channels ---
     for (const category of template.categories || []) {
       let cat = guild.channels.cache.find(c => c.name === category.name && c.type === 4);
-      if (!cat) {
-        cat = await guild.channels.create({ name: category.name, type: 4 }).catch(() => null);
-      }
+      if (!cat) cat = await guild.channels.create({ name: category.name, type: 4 }).catch(() => null);
       if (!cat) continue;
 
       for (const ch of category.channels || []) {
@@ -779,7 +777,7 @@ if (commandName === "update-server") {
       }
     }
 
-    // --- 🔥 Reaction Role Channel ---
+    // --- 🎭 Reaction Role Channel ---
     let vibeChannel = guild.channels.cache.find(ch => ch.name === "😎│choose-your-vibe");
     if (!vibeChannel) {
       const funCategory = guild.channels.cache.find(c => c.name.includes("COMMUNITY LOUNGE") && c.type === 4);
@@ -799,14 +797,13 @@ if (commandName === "update-server") {
         { emoji: "🐸", role: "🐸 Meme Frog" },
       ];
 
-      // Ensure reaction roles exist
+      // Ensure each vibe role exists
       for (const rr of reactionRoles) {
         if (!guild.roles.cache.find(r => r.name === rr.role)) {
           await guild.roles.create({ name: rr.role, color: "Random" }).catch(() => {});
         }
       }
 
-      // Delete old message if present
       const filePath = path.join(__dirname, "reactionRoles.json");
       if (fs.existsSync(filePath)) {
         const oldData = JSON.parse(fs.readFileSync(filePath, "utf8"));
@@ -816,7 +813,6 @@ if (commandName === "update-server") {
         } catch {}
       }
 
-      // Send new reaction role embed
       const embed = new EmbedBuilder()
         .setColor("#00FF9D")
         .setTitle("🎭 Choose Your Meme Vibe")
@@ -834,8 +830,91 @@ if (commandName === "update-server") {
       }
     }
 
+    // --- 📘 Server Guide Sync ---
+    let guide = guild.channels.cache.find(ch => ch.name === "📘│server-guide");
+    if (!guide) {
+      const welcomeCat = guild.channels.cache.find(c => c.name.includes("WELCOME ZONE") && c.type === 4);
+      guide = await guild.channels.create({
+        name: "📘│server-guide",
+        type: 0,
+        parent: welcomeCat ? welcomeCat.id : null,
+      }).catch(() => null);
+    }
+
+    if (guide) {
+      const everyone = guild.roles.everyone;
+      await guide.permissionOverwrites.create(everyone, {
+        ViewChannel: true,
+        SendMessages: false,
+        ReadMessageHistory: true,
+      }).catch(() => {});
+
+      const guideText = `
+🌌 **Welcome to The Meme Multiverse!**
+> Where memes are more than jokes — they’re a way of life 💀  
+> Read this guide to understand how everything works before diving in!
+
+---
+
+## 🪐 **Step 1: Get Verified**
+Go to **✅│verify-here** and click the **Verify** button.  
+This unlocks the rest of the Multiverse so you can post, react, and level up!
+
+---
+
+## 👤 **Your Meme Journey**
+Start as a **🌈 Normie**, then rise through the ranks:
+\`\`\`
+1  🌈 Normie
+5  🪖 Shitposter
+10 🔥 Meme Champion
+20 💎 Legendary Memer
+30 🧑‍🎨 Template Alchemist
+50 🕵️ Meme Historian
+\`\`\`
+
+---
+
+## 😂 **Explore the Multiverse**
+🏠 Welcome Zone  
+🎭 Meme HQ  
+📈 Level-Up Zone  
+🎨 Creator's Lab  
+🎭 Community Lounge  
+🏛️ Staff Area  
+
+---
+
+## 💎 **Features**
+✨ XP System  
+😂 Auto Reactions  
+🏆 Contests  
+🎨 Creator Roles  
+📈 Leaderboard  
+🎭 Reaction Roles  
+
+---
+
+## ⚖️ **Rules**
+1. Keep memes fun — no hate or NSFW  
+2. No spam or self-promo  
+3. Respect mods & others  
+4. Credit creators when possible  
+5. Have fun — that’s mandatory 💀
+`;
+
+      const messages = await guide.messages.fetch({ limit: 1 }).catch(() => null);
+      const existing = messages?.first();
+      if (existing && existing.author.id === client.user.id) {
+        await existing.edit(guideText).catch(() => {});
+      } else {
+        const msg = await guide.send(guideText).catch(() => {});
+        if (msg) await msg.pin().catch(() => {});
+      }
+    }
+
     await interaction.followUp({
-      content: "✅ Server updated successfully! Roles, channels, and reaction roles are synced 🎭",
+      content: "✅ Server updated successfully! Roles, channels, vibe roles, and server guide synced!",
       ephemeral: true,
     }).catch(() => {});
   } catch (err) {
