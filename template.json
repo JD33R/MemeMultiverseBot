@@ -3,97 +3,55 @@
     {
       "name": "👑 Meme Lord",
       "color": "#FFD700",
-      "permissions": [
-        "Administrator",
-        "ManageGuild",
-        "ManageRoles",
-        "ManageChannels",
-        "KickMembers",
-        "BanMembers"
-      ]
+      "permissions": ["Administrator", "ManageGuild", "ManageRoles", "ManageChannels", "KickMembers", "BanMembers"]
     },
     {
       "name": "🧱 Moderator",
       "color": "#FF4500",
-      "permissions": [
-        "ManageMessages",
-        "MuteMembers",
-        "KickMembers",
-        "ManageThreads",
-        "ViewAuditLog"
-      ]
+      "permissions": ["ManageMessages", "MuteMembers", "KickMembers", "ManageThreads", "ViewAuditLog"]
     },
     {
       "name": "🤖 The Overseer (Bot)",
       "color": "#00FFFF",
-      "permissions": [
-        "SendMessages",
-        "EmbedLinks",
-        "AttachFiles",
-        "ManageMessages",
-        "UseApplicationCommands"
-      ]
+      "permissions": ["SendMessages", "EmbedLinks", "AttachFiles", "ManageMessages", "UseApplicationCommands"]
     },
     {
       "name": "🪖 Shitposter",
       "color": "#FF69B4",
-      "permissions": [
-        "SendMessages",
-        "AddReactions",
-        "AttachFiles",
-        "ReadMessageHistory"
-      ]
+      "permissions": ["SendMessages", "AddReactions", "AttachFiles", "ReadMessageHistory"]
     },
     {
       "name": "🌈 Normie",
       "color": "#7289DA",
-      "permissions": [
-        "SendMessages",
-        "AddReactions",
-        "Connect",
-        "Speak",
-        "ReadMessageHistory"
-      ]
+      "permissions": ["SendMessages", "AddReactions", "Connect", "Speak", "ReadMessageHistory"]
     },
     {
       "name": "🔥 Meme Champion",
       "color": "#FF8C00",
-      "permissions": [
-        "SendMessages",
-        "AddReactions",
-        "AttachFiles",
-        "Connect",
-        "Speak"
-      ]
+      "permissions": ["SendMessages", "AddReactions", "AttachFiles", "Connect", "Speak"]
     },
     {
       "name": "💎 Legendary Memer",
       "color": "#9400D3",
-      "permissions": [
-        "SendMessages",
-        "AttachFiles",
-        "EmbedLinks",
-        "AddReactions"
-      ]
+      "permissions": ["SendMessages", "AttachFiles", "EmbedLinks", "AddReactions"]
     },
     {
       "name": "🧑‍🎨 Template Alchemist",
       "color": "#32CD32",
-      "permissions": [
-        "SendMessages",
-        "AttachFiles",
-        "EmbedLinks"
-      ]
+      "permissions": ["SendMessages", "AttachFiles", "EmbedLinks"]
     },
     {
       "name": "🕵️ Meme Historian",
       "color": "#9932CC",
-      "permissions": [
-        "SendMessages",
-        "ReadMessageHistory",
-        "AddReactions"
-      ]
-    }
+      "permissions": ["SendMessages", "ReadMessageHistory", "AddReactions"]
+    },
+
+    // --- Reaction Roles (no perms, just colors) ---
+    { "name": "💀 Dankster", "color": "#5865F2", "permissions": [] },
+    { "name": "🌮 Taco Lover", "color": "#FEE75C", "permissions": [] },
+    { "name": "🦆 Quackhead", "color": "#43B581", "permissions": [] },
+    { "name": "🧠 Galaxy Brain", "color": "#9B59B6", "permissions": [] },
+    { "name": "🐸 Meme Frog", "color": "#57F287", "permissions": [] }
   ],
 
   "categories": [
@@ -160,6 +118,12 @@
       ]
     },
     {
+      "name": "🎭 REACTION ROLES",
+      "channels": [
+        { "name": "😎│choose-your-vibe", "type": "text" }
+      ]
+    },
+    {
       "name": "🏛️ STAFF AREA",
       "channels": [
         { "name": "🗂️│mod-logs", "type": "text" },
@@ -171,3 +135,4 @@
     }
   ]
 }
+

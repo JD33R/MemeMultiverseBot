@@ -542,6 +542,34 @@ Engage, react, share memes — and rise to meme immortality.
   }
 }
 
+// === 🎭 Create Reaction Role Message ===
+const vibeChannel = guild.channels.cache.find(ch => ch.name === "😎│choose-your-vibe");
+if (vibeChannel) {
+  const reactionRoles = [
+    { emoji: "💀", role: "💀 Dankster" },
+    { emoji: "🌮", role: "🌮 Taco Lover" },
+    { emoji: "🦆", role: "🦆 Quackhead" },
+    { emoji: "🧠", role: "🧠 Galaxy Brain" },
+    { emoji: "🐸", role: "🐸 Meme Frog" },
+  ];
+
+  const embed = new EmbedBuilder()
+    .setColor("#00FF9D")
+    .setTitle("🎭 Choose Your Meme Vibe")
+    .setDescription(
+      "Pick your meme identity! React below to claim a vibe — you can have more than one 😎\n\n" +
+      reactionRoles.map(rr => `${rr.emoji} → **${rr.role}**`).join("\n")
+    )
+    .setFooter({ text: "React to toggle your vibe role 💀" })
+    .setTimestamp();
+
+  const msg = await vibeChannel.send({ embeds: [embed] }).catch(() => {});
+  if (msg) {
+    for (const rr of reactionRoles) await msg.react(rr.emoji).catch(() => {});
+    // Save the message ID for tracking reactions
+    fs.writeFileSync(path.join(__dirname, "reactionRoles.json"), JSON.stringify({ messageId: msg.id, mapping: reactionRoles }, null, 2));
+  }
+}
 
     // ===================================
     // 😂 /meme
@@ -804,6 +832,49 @@ if (commandName === "update-server") {
   } catch (err) {
     console.error("Interaction error:", err);
   }
+});
+
+// ================================
+// 🎭 Reaction Role Handler
+// ================================
+client.on("messageReactionAdd", async (reaction, user) => {
+  if (user.bot || !reaction.message.guild) return;
+
+  const file = path.join(__dirname, "reactionRoles.json");
+  if (!fs.existsSync(file)) return;
+
+  const data = JSON.parse(fs.readFileSync(file, "utf8"));
+  if (reaction.message.id !== data.messageId) return;
+
+  const guild = reaction.message.guild;
+  const member = await guild.members.fetch(user.id).catch(() => null);
+  if (!member) return;
+
+  const rr = data.mapping.find(m => m.emoji === reaction.emoji.name);
+  if (!rr) return;
+
+  const role = guild.roles.cache.find(r => r.name === rr.role);
+  if (role) await member.roles.add(role).catch(() => {});
+});
+
+client.on("messageReactionRemove", async (reaction, user) => {
+  if (user.bot || !reaction.message.guild) return;
+
+  const file = path.join(__dirname, "reactionRoles.json");
+  if (!fs.existsSync(file)) return;
+
+  const data = JSON.parse(fs.readFileSync(file, "utf8"));
+  if (reaction.message.id !== data.messageId) return;
+
+  const guild = reaction.message.guild;
+  const member = await guild.members.fetch(user.id).catch(() => null);
+  if (!member) return;
+
+  const rr = data.mapping.find(m => m.emoji === reaction.emoji.name);
+  if (!rr) return;
+
+  const role = guild.roles.cache.find(r => r.name === rr.role);
+  if (role) await member.roles.remove(role).catch(() => {});
 });
 
 
