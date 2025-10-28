@@ -1,5 +1,5 @@
 require("dotenv").config();
-const { REST, Routes, SlashCommandBuilder } = require("discord.js");
+const { REST, Routes, SlashCommandBuilder, PermissionsBitField } = require("discord.js");
 
 if (!process.env.BOT_TOKEN || !process.env.CLIENT_ID || !process.env.GUILD_ID) {
   console.error("❌ Missing BOT_TOKEN, CLIENT_ID, or GUILD_ID in environment variables.");
@@ -23,8 +23,10 @@ const commands = [
     .setName("leaderboard")
     .setDescription("🏆 View the top-ranked memers in the Meme Multiverse."),
   new SlashCommandBuilder()
-    .setName("update-server")
-    .setDescription("🔄 Sync new roles and channels from the template without deleting anything."),
+  .setName("update-server")
+  .setDescription("🔄 Sync new roles and channels from the template without deleting anything.")
+  .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
+  .setDMPermission(false),
   new SlashCommandBuilder()
     .setName("help")
     .setDescription("📘 View all available Meme Multiverse commands."),
