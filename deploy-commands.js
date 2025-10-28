@@ -14,23 +14,20 @@ const commands = [
     .setName("reset-server")
     .setDescription("⚠️ Delete all channels and roles, resetting the server."),
   new SlashCommandBuilder()
-    .setName("verify")
-    .setDescription("✅ Verify yourself and unlock all channels."),
-  new SlashCommandBuilder()
     .setName("meme")
     .setDescription("😂 Fetch a random meme from Reddit."),
   new SlashCommandBuilder()
     .setName("rank")
-    .setDescription("📈 Show your XP and level."),  
-new SlashCommandBuilder()
+    .setDescription("📈 Show your XP and level."),
+  new SlashCommandBuilder()
     .setName("leaderboard")
     .setDescription("🏆 View the top-ranked memers in the Meme Multiverse."),
-new SlashCommandBuilder()
-  .setName("update-server")
-  .setDescription("🔄 Sync new roles and channels from the template without deleting anything."),
-new SlashCommandBuilder()
-    .setName("check-intents")
-    .setDescription("🧩 Check active Discord gateway intents."),
+  new SlashCommandBuilder()
+    .setName("update-server")
+    .setDescription("🔄 Sync new roles and channels from the template without deleting anything."),
+  new SlashCommandBuilder()
+    .setName("help")
+    .setDescription("📘 View all available Meme Multiverse commands."),
 ].map(command => command.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(process.env.BOT_TOKEN);
