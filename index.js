@@ -738,7 +738,7 @@ if (commandName === "help") {
 }
 
 // ===================================
-// 🔄 /update-server — Safe Sync
+// 🔄 /update-server — Safe Sync + Reaction Roles
 // ===================================
 if (commandName === "update-server") {
   const { guild } = interaction;
@@ -779,11 +779,65 @@ if (commandName === "update-server") {
       }
     }
 
+    // --- 🔥 Reaction Role Channel ---
+    let vibeChannel = guild.channels.cache.find(ch => ch.name === "😎│choose-your-vibe");
+    if (!vibeChannel) {
+      const funCategory = guild.channels.cache.find(c => c.name.includes("COMMUNITY LOUNGE") && c.type === 4);
+      vibeChannel = await guild.channels.create({
+        name: "😎│choose-your-vibe",
+        type: 0, // text
+        parent: funCategory ? funCategory.id : null,
+      }).catch(() => null);
+    }
+
+    if (vibeChannel) {
+      const reactionRoles = [
+        { emoji: "💀", role: "💀 Dankster" },
+        { emoji: "🌮", role: "🌮 Taco Lover" },
+        { emoji: "🦆", role: "🦆 Quackhead" },
+        { emoji: "🧠", role: "🧠 Galaxy Brain" },
+        { emoji: "🐸", role: "🐸 Meme Frog" },
+      ];
+
+      // Ensure reaction roles exist
+      for (const rr of reactionRoles) {
+        if (!guild.roles.cache.find(r => r.name === rr.role)) {
+          await guild.roles.create({ name: rr.role, color: "Random" }).catch(() => {});
+        }
+      }
+
+      // Delete old message if present
+      const filePath = path.join(__dirname, "reactionRoles.json");
+      if (fs.existsSync(filePath)) {
+        const oldData = JSON.parse(fs.readFileSync(filePath, "utf8"));
+        try {
+          const oldMsg = await vibeChannel.messages.fetch(oldData.messageId).catch(() => null);
+          if (oldMsg) await oldMsg.delete().catch(() => {});
+        } catch {}
+      }
+
+      // Send new reaction role embed
+      const embed = new EmbedBuilder()
+        .setColor("#00FF9D")
+        .setTitle("🎭 Choose Your Meme Vibe")
+        .setDescription(
+          "Pick your meme identity! React below to claim a vibe — you can have more than one 😎\n\n" +
+          reactionRoles.map(rr => `${rr.emoji} → **${rr.role}**`).join("\n")
+        )
+        .setFooter({ text: "React to toggle your vibe role 💀" })
+        .setTimestamp();
+
+      const msg = await vibeChannel.send({ embeds: [embed] }).catch(() => {});
+      if (msg) {
+        for (const rr of reactionRoles) await msg.react(rr.emoji).catch(() => {});
+        fs.writeFileSync(filePath, JSON.stringify({ messageId: msg.id, mapping: reactionRoles }, null, 2));
+      }
+    }
+
     await interaction.followUp({
-      content: "✅ Server updated successfully! New roles, channels, and categories have been synced.",
+      content: "✅ Server updated successfully! Roles, channels, and reaction roles are synced 🎭",
       ephemeral: true,
     }).catch(() => {});
-
   } catch (err) {
     console.error("Update server error:", err);
     await interaction.followUp({
