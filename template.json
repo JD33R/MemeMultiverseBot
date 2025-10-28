@@ -45,8 +45,6 @@
       "color": "#9932CC",
       "permissions": ["SendMessages", "ReadMessageHistory", "AddReactions"]
     },
-
-    // --- Reaction Roles (no perms, just colors) ---
     { "name": "💀 Dankster", "color": "#5865F2", "permissions": [] },
     { "name": "🌮 Taco Lover", "color": "#FEE75C", "permissions": [] },
     { "name": "🦆 Quackhead", "color": "#43B581", "permissions": [] },
@@ -135,4 +133,3 @@
     }
   ]
 }
-
