@@ -709,6 +709,62 @@ if (commandName === "help") {
   }
 }
 
+// ===================================
+// 🔄 /update-server — Safe Sync
+// ===================================
+if (commandName === "update-server") {
+  const { guild } = interaction;
+  try {
+    await ensureDeferred(interaction, { ephemeral: true });
+    await interaction.editReply("🔄 Checking for new roles, channels, and categories...").catch(() => {});
+
+    // --- Create missing roles ---
+    if (template.roles && Array.isArray(template.roles)) {
+      for (const r of template.roles) {
+        if (!guild.roles.cache.find(x => x.name === r.name)) {
+          await guild.roles.create({
+            name: r.name,
+            color: r.color || null,
+            permissions: r.permissions || [],
+          }).catch(e => console.log(`Role error ${r.name}: ${e.message}`));
+        }
+      }
+    }
+
+    // --- Create missing categories and channels ---
+    for (const category of template.categories || []) {
+      let cat = guild.channels.cache.find(c => c.name === category.name && c.type === 4);
+      if (!cat) {
+        cat = await guild.channels.create({ name: category.name, type: 4 }).catch(() => null);
+      }
+      if (!cat) continue;
+
+      for (const ch of category.channels || []) {
+        const existing = guild.channels.cache.find(c => c.name === ch.name && c.parentId === cat.id);
+        if (!existing) {
+          await guild.channels.create({
+            name: ch.name,
+            type: ch.type === "voice" ? 2 : 0,
+            parent: cat.id,
+          }).catch(() => {});
+        }
+      }
+    }
+
+    await interaction.followUp({
+      content: "✅ Server updated successfully! New roles, channels, and categories have been synced.",
+      ephemeral: true,
+    }).catch(() => {});
+
+  } catch (err) {
+    console.error("Update server error:", err);
+    await interaction.followUp({
+      content: `❌ Failed to update: ${err.message}`,
+      ephemeral: true,
+    }).catch(() => {});
+  }
+}
+
     // ===================================
     // 📘 /help — Command List Embed (NEW)
     // ===================================

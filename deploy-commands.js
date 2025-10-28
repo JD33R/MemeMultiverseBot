@@ -26,6 +26,9 @@ new SlashCommandBuilder()
     .setName("leaderboard")
     .setDescription("🏆 View the top-ranked memers in the Meme Multiverse."),
 new SlashCommandBuilder()
+  .setName("update-server")
+  .setDescription("🔄 Sync new roles and channels from the template without deleting anything."),
+new SlashCommandBuilder()
     .setName("check-intents")
     .setDescription("🧩 Check active Discord gateway intents."),
 ].map(command => command.toJSON());
