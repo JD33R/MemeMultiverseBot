@@ -403,6 +403,90 @@ if (commandName === "setup-meme") {
         .catch(() => {});
     }
 
+// === 📘 Create Server Guide Channel ===
+const guide = await guild.channels.create({
+  name: "📘│server-guide",
+  type: 0, // text
+}).catch(() => null);
+
+if (guide) {
+  // Make guide visible to everyone (even unverified)
+  await guide.permissionOverwrites.create(everyone, {
+    ViewChannel: true,
+    SendMessages: false,
+    ReadMessageHistory: true,
+  }).catch(() => {});
+
+  const guideText = `
+🌌 **Welcome to The Meme Multiverse!**
+> Where memes are more than jokes — they’re a way of life 💀  
+> Read this guide to understand how everything works before diving in!
+
+---
+
+## 🪐 **Step 1: Get Verified**
+Head to the **✅│verify-here** channel and click the **Verify** button.  
+This unlocks the rest of the Multiverse so you can post, react, and level up!
+
+---
+
+## 👤 **Your Journey Begins Here**
+Once verified, you’ll start as a **🌈 Normie** — the first tier of memers.  
+By chatting, posting memes, and engaging with others, you earn **XP** and climb the ranks!
+
+**Level Up & Evolve**
+\`\`\`
+1  🌈 Normie — Access to meme & chat channels
+5  🪖 Shitposter — Unlock fun & meme event channels
+10 🔥 Meme Champion — Get featured in contests
+20 💎 Legendary Memer — Access to Creator’s Lab
+30 🧑‍🎨 Template Alchemist — Collaborate on meme templates
+50 🕵️ Meme Historian — Help preserve legendary memes
+\`\`\`
+
+---
+
+## 😂 **Explore the Multiverse**
+🏠 **Welcome Zone** — Announcements & Introductions  
+🎭 **Meme HQ** — Share memes & chaos  
+📈 **Level-Up Zone** — XP and leaderboard channels  
+🎨 **Creator’s Lab** — Meme creation and design  
+🎭 **Community Lounge** — Chat and voice hangouts  
+🏛️ **Staff Area** — Mod-only zone  
+
+---
+
+## 💎 **Server Features**
+✨ XP System — Earn XP from memes & chat  
+😂 Auto Reactions — Memes get instant reactions  
+🏆 Contests — Compete for meme fame  
+🎨 Creator Roles — Unlock exclusive meme roles  
+📈 Leaderboard — Flex your meme power  
+🤖 Commands:
+> \`/meme\` Get a random meme  
+> \`/rank\` Check your XP level  
+> \`/help\` View all commands  
+
+---
+
+## ⚖️ **Rules**
+1. Keep memes fun — no hate or NSFW  
+2. No spam or self-promo  
+3. Respect mods & others  
+4. Credit meme creators when possible  
+5. Have fun — that’s mandatory 💀
+
+---
+
+## 🌈 **Stay Dank**
+Engage, react, share memes — and rise to meme immortality.  
+> “One does not simply post a meme... One crafts it.” 💀
+`;
+
+  const sentMessage = await guide.send(guideText).catch(() => {});
+  if (sentMessage) await sentMessage.pin().catch(() => {});
+}
+
     // === 📘 Create Command Guide Channel ===
     const guideChannel = await guild.channels.create({
       name: "📘│command-guide",
