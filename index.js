@@ -771,6 +771,53 @@ if (!process.env.BOT_TOKEN) {
   console.error("❌ BOT_TOKEN missing!");
   process.exit(1);
 }
+
+// ================================
+// 🧩 Register Slash Commands Automatically
+// ================================
+client.once("ready", async () => {
+  try {
+    const commands = [
+      {
+        name: "setup-meme",
+        description: "🧱 Builds the Meme Multiverse server (roles, channels, and verify system).",
+      },
+      {
+        name: "reset-server",
+        description: "🔁 Deletes all channels & roles and creates a rebuild channel.",
+      },
+      {
+        name: "meme",
+        description: "😂 Sends a fresh meme from Reddit.",
+      },
+      {
+        name: "rank",
+        description: "📈 Shows your XP and meme level.",
+      },
+      {
+        name: "leaderboard",
+        description: "🏆 Displays the top-ranked memers in the server.",
+      },
+      {
+        name: "help",
+        description: "📘 Shows the command and feature guide for the Meme Multiverse.",
+      },
+    ];
+
+    // If you want this to work in one specific server (recommended for testing):
+    if (process.env.GUILD_ID) {
+      await client.application.commands.set(commands, process.env.GUILD_ID);
+      console.log(`✅ Registered slash commands for guild: ${process.env.GUILD_ID}`);
+    } else {
+      // Global registration (takes ~1 hour to propagate)
+      await client.application.commands.set(commands);
+      console.log("🌍 Registered global slash commands.");
+    }
+  } catch (err) {
+    console.error("⚠️ Failed to register slash commands:", err);
+  }
+});
+
 // ================================
 // 🌐 Keep-alive for Render
 // ================================

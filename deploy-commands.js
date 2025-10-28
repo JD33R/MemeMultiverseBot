@@ -21,8 +21,11 @@ const commands = [
     .setDescription("😂 Fetch a random meme from Reddit."),
   new SlashCommandBuilder()
     .setName("rank")
-    .setDescription("📈 Show your XP and level."),
-  new SlashCommandBuilder()
+    .setDescription("📈 Show your XP and level."),  
+new SlashCommandBuilder()
+    .setName("leaderboard")
+    .setDescription("🏆 View the top-ranked memers in the Meme Multiverse."),
+new SlashCommandBuilder()
     .setName("check-intents")
     .setDescription("🧩 Check active Discord gateway intents."),
 ].map(command => command.toJSON());
