@@ -8,12 +8,6 @@ if (!process.env.BOT_TOKEN || !process.env.CLIENT_ID || !process.env.GUILD_ID) {
 
 const commands = [
   new SlashCommandBuilder()
-    .setName("setup-meme")
-    .setDescription("🌀 Build The Meme Multiverse server structure."),
-  new SlashCommandBuilder()
-    .setName("reset-server")
-    .setDescription("⚠️ Delete all channels and roles, resetting the server."),
-  new SlashCommandBuilder()
     .setName("meme")
     .setDescription("😂 Fetch a random meme from Reddit."),
   new SlashCommandBuilder()
@@ -22,11 +16,6 @@ const commands = [
   new SlashCommandBuilder()
     .setName("leaderboard")
     .setDescription("🏆 View the top-ranked memers in the Meme Multiverse."),
-  new SlashCommandBuilder()
-  .setName("update-server")
-  .setDescription("🔄 Sync new roles and channels from the template without deleting anything.")
-  .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
-  .setDMPermission(false),
   new SlashCommandBuilder()
     .setName("help")
     .setDescription("📘 View all available Meme Multiverse commands."),
