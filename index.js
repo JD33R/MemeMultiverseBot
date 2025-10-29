@@ -19,6 +19,37 @@ const fetch = require("node-fetch");
 const fs = require("fs");
 const path = require("path");
 const Levels = require("discord-xp");
+const OWNER_ID = "jd33r"; // replace this with your actual Discord ID
+
+// ===============================
+// 🧩 COMMAND ROUTER
+// ===============================
+switch (commandName) {
+  // 🧱 Admin-only commands
+  case "setup-meme":
+  case "reset-server":
+  case "update-server":
+    if (interaction.user.id !== OWNER_ID) {
+      return await interaction.editReply("❌ You don’t have permission to use this command.");
+    }
+    if (commandName === "setup-meme") return await handleSetupMeme(interaction);
+    if (commandName === "reset-server") return await handleResetServer(interaction);
+    if (commandName === "update-server") return await handleUpdateServer(interaction);
+    break;
+
+  // 🌈 Public commands
+  case "rank":
+    return await handleRank(interaction);
+  case "meme":
+    return await handleMeme(interaction);
+  case "leaderboard":
+    return await handleLeaderboard(interaction);
+  case "help":
+    return await handleHelp(interaction);
+
+  default:
+    return await interaction.editReply("❌ Unknown command.");
+}
 
 // ================================
 // 🧱 Load Meme Server Template
