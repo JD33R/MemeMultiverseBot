@@ -827,6 +827,37 @@ client.once("ready", async () => {
   }
 });
 
+// =====================================
+// 🧹 Auto Delete Unsafe Commands on Startup
+// =====================================
+const { REST, Routes } = require("discord.js");
+
+(async () => {
+  try {
+    const rest = new REST({ version: "10" }).setToken(process.env.BOT_TOKEN);
+    console.log("🧹 Checking for old commands to delete...");
+
+    const commands = await rest.get(
+      Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID)
+    );
+
+    const commandsToDelete = ["setup-meme", "reset-server", "update-server"];
+
+    for (const command of commands) {
+      if (commandsToDelete.includes(command.name)) {
+        console.log(`🚮 Deleting command: ${command.name}`);
+        await rest.delete(
+          Routes.applicationGuildCommand(process.env.CLIENT_ID, process.env.GUILD_ID, command.id)
+        );
+      }
+    }
+
+    console.log("✅ Restricted commands removed successfully.");
+  } catch (err) {
+    console.error("❌ Failed to clean commands:", err.message);
+  }
+})();
+
 // ================================
 // 🌐 Keep-alive for Render
 // ================================
