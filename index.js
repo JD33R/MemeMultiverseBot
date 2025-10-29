@@ -30,7 +30,10 @@ switch (commandName) {
   case "reset-server":
   case "update-server":
     if (interaction.user.id !== OWNER_ID) {
-      return await interaction.editReply("❌ You don’t have permission to use this command.");
+      if (!isOwner) {
+  await interaction.editReply("❌ You don’t have permission to use this command.");
+  return;
+}
     }
     if (commandName === "setup-meme") return await handleSetupMeme(interaction);
     if (commandName === "reset-server") return await handleResetServer(interaction);
